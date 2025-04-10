@@ -1,4 +1,5 @@
 require('dotenv').config();
+console.log('QRCODE ROUTE FILE LOADED');
 
 const express = require('express');
 const createError = require('http-errors');
@@ -14,6 +15,9 @@ const LocalStrategy = require('passport-local').Strategy;
 const fs = require('fs');
 const router = express.Router();
 
+// Force default NODE_ENV
+process.env.NODE_ENV = process.env.NODE_ENV || 'development';
+
 const sequelise = require('./config/db/db_sequelise');
 const db = require('./config/passport/localdb');
 const ROLES = require('./utils/roles');
@@ -22,7 +26,7 @@ const CUSTOM_ENUMS = require('./utils/enums');
 const swaggerJSDoc = require('swagger-jsdoc');
 const swaggerUi = require('swagger-ui-express');
 
-// Swagger configuration
+// Swagger config
 const swaggerDefinition = {
   openapi: '3.0.0',
   info: {
@@ -48,24 +52,30 @@ const swaggerOptions = {
 
 const swaggerSpecs = swaggerJSDoc(swaggerOptions);
 
-// Initialize app
 const app = express();
 
 // Redirect HTTP to HTTPS in production
-if (process.env.NODE_ENV === CUSTOM_ENUMS.PRODUCTION) {
+if (process.env.NODE_ENV === 'production') {
   app.use(sslRedirect());
+  // Fallback HTTPS redirect using x-forwarded-proto
+  app.use((req, res, next) => {
+    if (req.headers['x-forwarded-proto'] !== 'https') {
+      return res.redirect('https://' + req.headers.host + req.url);
+    }
+    next();
+  });
 }
 
-// View engine setup
+// View engine
 app.set('views', path.join(__dirname, 'views'));
 app.set('view engine', 'ejs');
 
-// Logging setup
+// Logging
 const accessLogStream = fs.createWriteStream(path.join(__dirname, 'access.log'), { flags: 'a' });
 app.use(
-  logger(app.get('env') === CUSTOM_ENUMS.PRODUCTION ? 'common' : 'dev', {
-    skip: (req, res) => app.get('env') === CUSTOM_ENUMS.PRODUCTION && res.statusCode < 400,
-    stream: app.get('env') !== CUSTOM_ENUMS.PRODUCTION ? accessLogStream : undefined,
+  logger(process.env.NODE_ENV === 'production' ? 'common' : 'dev', {
+    skip: (req, res) => process.env.NODE_ENV === 'production' && res.statusCode < 400,
+    stream: process.env.NODE_ENV !== 'production' ? accessLogStream : undefined,
   })
 );
 
@@ -74,9 +84,12 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
 app.use(cors());
+
+// Fallback SESSION_SECRET
+const sessionSecret = process.env.SESSION_SECRET || 'default_secret_dev';
 app.use(
   session({
-    secret: process.env.SESSION_SECRET,
+    secret: sessionSecret,
     resave: false,
     saveUninitialized: true,
     cookie: { maxAge: 1800000 },
@@ -93,16 +106,14 @@ app.use((req, res, next) => {
   next();
 });
 
-// Serve Swagger docs
+// Swagger docs
 app.use('/docs', swaggerUi.serve, swaggerUi.setup(swaggerSpecs));
 
 // Static files
 app.use(express.static(path.join(__dirname, 'src')));
 app.use(express.static(path.join(__dirname, 'build')));
 
-// Import routers
-app.use('/', router);
-app.use('/', require('./routes/blockchain'));
+// Routes
 app.use('/app/config', require('./routes/config'));
 app.use('/app/auth', require('./routes/auth'));
 app.use('/app/harvest', require('./routes/harvest'));
@@ -113,12 +124,14 @@ app.use('/app/buyer', require('./routes/buyer'));
 app.use('/app/seller', require('./routes/seller'));
 app.use('/app/order', require('./routes/order'));
 app.use('/app/email', require('./routes/email'));
-app.use('/app/', require('./routes/qrcode'));
+app.use('/app', require('./routes/qrcode'));
+app.use('/app/api/v1', require('./routes/api_v1'));
+app.use('/', require('./routes/blockchain'));
 app.use('/', require('./routes/test'));
 app.use('/', require('./routes/search'));
-app.use('/app/api/v1', require('./routes/api_v1'));
+app.use('/', router);
 
-// Passport strategies
+// Passport
 const configureStrategy = name =>
   new LocalStrategy(
     {
@@ -144,11 +157,6 @@ passport.deserializeUser((id, cb) => {
   db.users.findById(id, (err, user) => cb(err, user));
 });
 
-// Catch 404
-app.use((req, res, next) => {
-  next(createError(404));
-});
-
 // Home route
 router.get(
   '/',
@@ -162,6 +170,11 @@ router.get(
   }
 );
 
+// 404 handler
+app.use((req, res, next) => {
+  next(createError(404));
+});
+
 // Error handler
 app.use((err, req, res, next) => {
   res.locals.message = err.message;
@@ -170,7 +183,7 @@ app.use((err, req, res, next) => {
   res.render('error', { user: req.user, page_name: 'error' });
 });
 
-// Start server after Sequelize connects
+// DB + Server
 sequelise
   .authenticate()
   .then(() => {

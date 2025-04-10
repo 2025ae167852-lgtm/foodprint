@@ -1,3 +1,4 @@
+console.log('QRCODE ROUTE FILE LOADED');
 var express = require('express');
 const { check, validationResult, sanitizeParam } = require('express-validator');
 const { Op, Sequelize } = require('sequelize');

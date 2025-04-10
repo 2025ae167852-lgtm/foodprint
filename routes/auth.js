@@ -67,7 +67,7 @@ router.get('/logout', function (req, res) {
 });
 
 /* Render Register page. */
-router.get('/register/:message?', function (req, res) {
+router.get('/register', function (req, res) {
   req.params.message
     ? res.render('message', {
         title: 'FoodPrint - User Registration',
