@@ -1,32 +1,28 @@
 require('dotenv').config();
-var createError = require('http-errors');
-var sslRedirect = require('heroku-ssl-redirect');
-var express = require('express');
-var cookieParser = require('cookie-parser');
-var logger = require('morgan'); //Morgan is an HTTP request logger middleware for Node.js. It simplifies the process of logging requests to your application.
-var flash = require('express-flash');
-var session = require('express-session');
-var cors = require('cors');
-var path = require('path');
-var router = express.Router();
-var passport = require('passport');
-var LocalStrategy = require('passport-local').Strategy;
-var fs = require('fs');
-var sequelise = require('./config/db/db_sequelise');
-var ROLES = require('./utils/roles');
 
+const express = require('express');
+const createError = require('http-errors');
+const sslRedirect = require('heroku-ssl-redirect');
+const cookieParser = require('cookie-parser');
+const logger = require('morgan');
+const flash = require('express-flash');
+const session = require('express-session');
+const cors = require('cors');
+const path = require('path');
+const passport = require('passport');
+const LocalStrategy = require('passport-local').Strategy;
+const fs = require('fs');
+const router = express.Router();
+
+const sequelise = require('./config/db/db_sequelise');
+const db = require('./config/passport/localdb');
+const ROLES = require('./utils/roles');
 const CUSTOM_ENUMS = require('./utils/enums');
+
 const swaggerJSDoc = require('swagger-jsdoc');
 const swaggerUi = require('swagger-ui-express');
 
-//only load the .env file if the server isn’t started in production mode
-if (process.env.NODE_ENV !== CUSTOM_ENUMS.PRODUCTION) {
-  require('dotenv').config();
-}
-
-// const uuidv4 = require('uuid/v4')
-var db = require('./config/passport/localdb');
-
+// Swagger configuration
 const swaggerDefinition = {
   openapi: '3.0.0',
   info: {
@@ -34,7 +30,7 @@ const swaggerDefinition = {
     version: '1.0.0',
     description: 'Foodprint API to allow external apps to communicate with Foodprint',
     license: {
-      name: 'Licensed Under MIT',
+      name: 'MIT',
       url: 'https://github.com/FoodPrintLabs/foodprint/blob/master/LICENSE',
     },
     contact: {
@@ -42,12 +38,7 @@ const swaggerDefinition = {
       url: 'https://github.com/FoodPrintLabs',
     },
   },
-  servers: [
-    {
-      url: 'http://localhost:3000',
-      description: 'dev',
-    },
-  ],
+  servers: [{ url: 'http://localhost:3000', description: 'dev' }],
 };
 
 const swaggerOptions = {
@@ -57,256 +48,141 @@ const swaggerOptions = {
 
 const swaggerSpecs = swaggerJSDoc(swaggerOptions);
 
-var app = express();
-var configRouter = require('./routes/config');
-var harvestRouter = require('./routes/harvest');
-var storageRouter = require('./routes/storage');
-var authRouter = require('./routes/auth');
-var blockchainRouter = require('./routes/blockchain');
-var dashboardsRouter = require('./routes/dashboards');
-var qrCodeRouter = require('./routes/qrcode');
+// Initialize app
+const app = express();
 
-var testRouter = require('./routes/test');
-var searchRouter = require('./routes/search');
-var apiV1Router = require('./routes/api_v1');
-var produceRouter = require('./routes/produce');
-var buyerRouter = require('./routes/buyer');
-var sellerRouter = require('./routes/seller');
-var orderRouter = require('./routes/order');
-var emailRouter = require('./routes/email');
+// Redirect HTTP to HTTPS in production
+if (process.env.NODE_ENV === CUSTOM_ENUMS.PRODUCTION) {
+  app.use(sslRedirect());
+}
 
-// enable ssl redirect
-app.use(
-  sslRedirect([
-    'other',
-    //'development',
-    'production',
-  ])
-);
-
-// view engine setup
+// View engine setup
 app.set('views', path.join(__dirname, 'views'));
 app.set('view engine', 'ejs');
 
-// You can set morgan to log differently depending on your environment
+// Logging setup
+const accessLogStream = fs.createWriteStream(path.join(__dirname, 'access.log'), { flags: 'a' });
+app.use(
+  logger(app.get('env') === CUSTOM_ENUMS.PRODUCTION ? 'common' : 'dev', {
+    skip: (req, res) => app.get('env') === CUSTOM_ENUMS.PRODUCTION && res.statusCode < 400,
+    stream: app.get('env') !== CUSTOM_ENUMS.PRODUCTION ? accessLogStream : undefined,
+  })
+);
 
-// create a write stream (in append mode), to current directory
-var accessLogStream = fs.createWriteStream(path.join(__dirname, 'access.log'), {
-  flags: 'a',
-});
-
-// only log error responses, write log lines to process.stdout
-if (app.get('env') == CUSTOM_ENUMS.PRODUCTION) {
-  app.use(
-    logger('common', {
-      skip: function (req, res) {
-        return res.statusCode < 400;
-      },
-    })
-  );
-  // app.use(logger('common', { skip: function(req, res) { return res.statusCode < 400 }, stream: __dirname + '/access.log' }));
-} else {
-  //write logfile to current directory, flag a is append
-  app.use(logger('dev', { stream: accessLogStream }));
-}
-
+// Middleware
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
-
 app.use(cookieParser());
 app.use(cors());
-
 app.use(
   session({
     secret: process.env.SESSION_SECRET,
     resave: false,
     saveUninitialized: true,
-    cookie: { maxAge: 1800000 }, // time im ms: 60000 - 1 min, 1800000 - 30min, 3600000 - 1 hour
+    cookie: { maxAge: 1800000 },
   })
 );
-
-// Initialize Passport and restore authentication state, if any, from the session.
 app.use(passport.initialize());
 app.use(passport.session());
-
 app.use(flash());
 
-// middleware for all views
-app.use(function (req, res, next) {
-  // locals is deleted at the end of current request, flash is deleted after it is displayed,
-  // and it is stored in session intermediately.
-  // (this works with redirect)
+// Flash locals for views
+app.use((req, res, next) => {
   res.locals.error = req.flash('error');
   res.locals.success = req.flash('success');
   next();
 });
 
+// Serve Swagger docs
 app.use('/docs', swaggerUi.serve, swaggerUi.setup(swaggerSpecs));
 
-// Mount routers
-app.use('/', router);
-app.use('/', blockchainRouter);
-app.use('/app/config', configRouter);
-app.use('/app/auth', authRouter);
-app.use('/app/harvest', harvestRouter);
-app.use('/app/storage', storageRouter);
-app.use('/app/produce', produceRouter);
-app.use('/app/dashboards', dashboardsRouter);
-app.use('/app/buyer', buyerRouter);
-app.use('/app/seller', sellerRouter);
-app.use('/app/order', orderRouter);
-app.use('/app/email', emailRouter);
-
-app.use('/', testRouter);
-app.use('/', searchRouter);
-app.use('/app/', qrCodeRouter);
-
-app.use('/app/api/v1', apiV1Router);
-
+// Static files
 app.use(express.static(path.join(__dirname, 'src')));
 app.use(express.static(path.join(__dirname, 'build')));
 
-// Configure the local strategy for use by Passport.
-//
-// The local strategy require a `verify` function which receives the credentials
-// (`username` and `password`) submitted by the user.  The function must verify
-// that the password is correct and then invoke `cb` with a user object, which
-// will be set at `req.user` in route handlers after authentication.
+// Import routers
+app.use('/', router);
+app.use('/', require('./routes/blockchain'));
+app.use('/app/config', require('./routes/config'));
+app.use('/app/auth', require('./routes/auth'));
+app.use('/app/harvest', require('./routes/harvest'));
+app.use('/app/storage', require('./routes/storage'));
+app.use('/app/produce', require('./routes/produce'));
+app.use('/app/dashboards', require('./routes/dashboards'));
+app.use('/app/buyer', require('./routes/buyer'));
+app.use('/app/seller', require('./routes/seller'));
+app.use('/app/order', require('./routes/order'));
+app.use('/app/email', require('./routes/email'));
+app.use('/app/', require('./routes/qrcode'));
+app.use('/', require('./routes/test'));
+app.use('/', require('./routes/search'));
+app.use('/app/api/v1', require('./routes/api_v1'));
 
-// We will use two LocalStrategies, one for file-based auth and another for db-auth
-passport.use(
-  'file-local',
+// Passport strategies
+const configureStrategy = name =>
   new LocalStrategy(
     {
-      usernameField: 'loginUsername', //useful for custom id's on your credentials fields, if incorrect you get a missing credentials error
-      passwordField: 'loginPassword', //useful for custom id's on your credentials fields
+      usernameField: 'loginUsername',
+      passwordField: 'loginPassword',
     },
-    function (username, password, cb) {
-      db.users.findByUsername(username, function (err, user) {
-        if (err) {
-          return cb(err);
+    (username, password, cb) => {
+      db.users.findByUsername(username, (err, user) => {
+        if (err) return cb(err);
+        if (!user || user.password !== password) {
+          return cb(null, false, { message: 'Incorrect credentials.' });
         }
-        if (!user) {
-          return cb(null, false, { message: 'Incorrect username.' });
-        }
-        if (user.password != password) {
-          return cb(null, false, { message: 'Incorrect password.' });
-        }
-        // If the credentials are valid, the verify callback invokes done to supply
-        // Passport with the user that authenticated.
         return cb(null, user);
       });
     }
-  )
-);
+  );
 
-passport.use(
-  'db-local',
-  new LocalStrategy(
-    {
-      usernameField: 'loginUsername', //useful for custom id's on your credentials fields, if this is incorrect you get a missing credentials error
-      passwordField: 'loginPassword', //useful for custom id's on your credentials fields
-    },
-    function (username, password, cb) {
-      db.users.findByUsername(username, function (err, user) {
-        if (err) {
-          return cb(err);
-        }
-        if (!user) {
-          return cb(null, false, { message: 'Incorrect username.' });
-        }
-        if (user.password != password) {
-          return cb(null, false, { message: 'Incorrect password.' });
-        }
-        // If the credentials are valid, the verify callback invokes done to
-        // supply Passport with the user that authenticated.
-        return cb(null, user);
-      });
-    }
-  )
-);
+passport.use('file-local', configureStrategy('file-local'));
+passport.use('db-local', configureStrategy('db-local'));
 
-// Configure Passport authenticated session persistence.
-//
-// In order to restore authentication state across HTTP requests, Passport needs
-// to serialize users into and deserialize users out of the session.  The
-// typical implementation of this is as simple as supplying the user ID when
-// serializing, and querying the user record by ID from the database when
-// deserializing.
-passport.serializeUser(function (user, cb) {
-  cb(null, user.id);
+passport.serializeUser((user, cb) => cb(null, user.id));
+passport.deserializeUser((id, cb) => {
+  db.users.findById(id, (err, user) => cb(err, user));
 });
 
-passport.deserializeUser(function (id, cb) {
-  db.users.findById(id, function (err, user) {
-    if (err) {
-      return cb(err);
-    }
-    cb(null, user);
-  });
-});
-
-// catch 404 and forward to error handler
-app.use(function (req, res, next) {
+// Catch 404
+app.use((req, res, next) => {
   next(createError(404));
 });
 
-//home page
+// Home route
 router.get(
   '/',
   require('connect-ensure-login').ensureLoggedIn({ redirectTo: '/app/auth/login' }),
-  function (req, res) {
-    if (req.user.role == ROLES.Admin || req.user.role == ROLES.Superuser) {
-      res.render('index', { user: req.user, page_name: 'home', admin_status: true });
-    } else {
-      res.render('index', { user: req.user, page_name: 'home', admin_status: false });
-    }
-
-    //res.sendFile(path.join(__dirname+'/src/index.html')); //__dirname : It will resolve to your project folder.
+  (req, res) => {
+    res.render('index', {
+      user: req.user,
+      page_name: 'home',
+      admin_status: [ROLES.Admin, ROLES.Superuser].includes(req.user.role),
+    });
   }
 );
 
-// error handler
-// to define an error-handling middleware, we simply define a middleware in our server.js with four arguments: err, req, res, and next.
-// As long as we have these four arguments, Express will recognize the middleware as an error handling middleware
-//Note that error handler must be the last middleware in chain, so it should be defined in the bottom of your application.js file after other app.use() and routes calls.
-app.use(function (err, req, res, next) {
-  // set locals, only providing error in development
+// Error handler
+app.use((err, req, res, next) => {
   res.locals.message = err.message;
   res.locals.error = req.app.get('env') === 'development' ? err : {};
-  // render the error page
   res.status(err.status || 500);
   res.render('error', { user: req.user, page_name: 'error' });
 });
 
-// alternative error handlers based on mode
-// app.configure('development', () => {
-//   app.use(express.errorHandler({ dumpExceptions: true, showStack: true }));
-// })
-
-// app.configure('production', () => {
-//   app.use(express.errorHandler())
-// })
-
-// app.listen(process.env.PORT || 3000);
-//
-// console.log('Running at Port 3000');
-
+// Start server after Sequelize connects
 sequelise
   .authenticate()
   .then(() => {
     console.log('Database connected...');
+    return sequelise.sync();
+  })
+  .then(() => {
+    const PORT = process.env.PORT || 3000;
+    app.listen(PORT, () => console.log(`Server started on port ${PORT}`));
   })
   .catch(err => {
-    console.log('Error connecting to database: ' + err);
+    console.error('Error starting server:', err);
   });
-
-const PORT = process.env.PORT || 3000;
-sequelise
-  .sync()
-  .then(() => {
-    app.listen(PORT, console.log(`Server started on port ${PORT}`));
-  })
-  .catch(err => console.log('Error synching models: ' + err));
 
 module.exports = app;
