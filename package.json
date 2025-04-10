@@ -1,0 +1,47 @@
+{
+  "name": "foodprint-app",
+  "version": "1.0.0",
+  "description": "Foodprint App",
+  "main": "index.js",
+  "scripts": {
+    "start": "node server.js",
+    "postinstall": "npx rimraf node_modules/**/.git",
+    "clean": "npx rimraf node_modules/**/.git",
+    "heroku-postbuild": "yarn build",
+    "heroku-clean": "npx rimraf node_modules && npx rimraf ~/.npm && npx rimraf ~/.yarn",
+    "build": "yarn clean && webpack --config webpack.config.js --mode production",
+    "dev": "webpack-dev-server --open --mode development",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "dependencies": {
+    "express": "^4.17.1",
+    "dotenv": "^10.0.0",
+    "ejs": "^3.1.6",
+    "react": "^17.0.2",
+    "react-dom": "^17.0.2",
+    "sequelize": "^6.6.5",
+    "pg": "^8.7.1",
+    "pg-hstore": "^2.3.4",
+    "rimraf": "^5.0.0",
+    "webpack": "^5.51.1",
+    "webpack-cli": "^4.8.0",
+    "webpack-dev-server": "^4.0.0"
+  },
+  "devDependencies": {
+    "shx": "^0.3.3"
+  },
+  "engines": {
+    "node": "16.x",
+    "npm": "7.x"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/username/foodprint-app.git"
+  },
+  "author": "Your Name",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/username/foodprint-app/issues"
+  },
+  "homepage": "https://github.com/username/foodprint-app#readme"
+}
