@@ -160,12 +160,15 @@ node sequelise_auto_export.js
 
 The generated models can be found in `./models`
 
-- Creating sequelize migration (which creates a js file in migrations folder and will need to be commited)
+- Creating sequelize migration (which creates a js file in migrations folder and will need to be
+  commited)
+
 ```bash
 npx sequelize migration:create --name name_of_new_db_column
 ```
 
 Run the migration
+
 ```bash
 npx sequelize db:migrate --url ‘mysql://username:password@localhost:3306/databasename'
 ```
@@ -174,7 +177,7 @@ npx sequelize db:migrate --url ‘mysql://username:password@localhost:3306/datab
 
 ```
 $node
->const uuidv4 = require('uuid/v4')
+const { v4: uuidv4 } = require('uuid');
 >uuidv4()
 ```
 
@@ -262,6 +265,7 @@ $ heroku run npx sequelize-cli db:migrate --url 'mysql://root:password@mysql_hos
 ```
 
 Alternatively
+
 ```
 $ heroku run npm run build -a name-of-app
 ```

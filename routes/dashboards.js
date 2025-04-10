@@ -2,7 +2,7 @@ var express = require('express');
 var router = express.Router();
 let moment = require('moment');
 const { check, validationResult } = require('express-validator');
-const uuidv4 = require('uuid/v4');
+const { v4: uuidv4 } = require('uuid');
 var body = require('express-validator'); //validation
 const { Op } = require('sequelize');
 

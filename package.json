@@ -5,14 +5,19 @@
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
+    "postinstall": "rimraf node_modules/**/.git",
+    "build": "webpack --config webpack.config.js --mode production",
+    "dev": "webpack-dev-server --open --mode development",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
+  "engines": {
+    "node": "20.x",
+    "npm": "10.x"
+  },
   "dependencies": {
-    "algosdk": "^3.2.0",
+    "algosdk": "^2.4.0",
     "aws-sdk": "^2.1459.0",
     "axios": "^1.5.0",
-    "chai": "^4.3.8",
-    "chai-http": "^4.3.0",
     "connect-ensure-login": "^0.1.0",
     "cookie-parser": "^1.4.6",
     "dotenv": "^16.4.7",
@@ -48,6 +53,7 @@
     "pdfkit": "^0.12.3",
     "rimraf": "^6.0.1",
     "shx": "^0.4.0",
+    "webpack": "^5.89.0",
     "webpack-cli": "^6.0.1",
     "webpack-dev-server": "^5.2.1"
   },

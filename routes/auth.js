@@ -9,14 +9,13 @@ var sequelise = require('../config/db/db_sequelise');
 
 var models = initModels(sequelise);
 
-
 const {
   getUploadParams,
   resolveFilenames,
   uploadConnection,
 } = require('../config/digitalocean/file-upload');
 const { getMimeType } = require('../utils/image_mimetypes');
-const uuidv4 = require('uuid/v4');
+const { v4: uuidv4 } = require('uuid');
 
 const BucketName = process.env.DO_BUCKET_NAME;
 
@@ -58,13 +57,13 @@ router.post(
 
 /* Logout. */
 router.get('/logout', function (req, res) {
-    req.logout(function(err) {
-        if (err) {
-            return next(err);
-        }
-        req.flash('success', 'You are now logged out.');
-        res.redirect('/app/auth/login');
-    });
+  req.logout(function (err) {
+    if (err) {
+      return next(err);
+    }
+    req.flash('success', 'You are now logged out.');
+    res.redirect('/app/auth/login');
+  });
 });
 
 /* Render Register page. */
@@ -92,7 +91,7 @@ router.post('/register', function (req, res) {
 
 /* Process register for WhatsApp*/
 router.post('/register/whatsapp', async function (req, res) {
-  const createUser = function(user_entry){
+  const createUser = function (user_entry) {
     models.User.create(user_entry)
       .then(_ => {
         models.User.findAll({
@@ -127,7 +126,7 @@ router.post('/register/whatsapp', async function (req, res) {
         console.log(err);
         res.status(400).send({ message: err.message });
       });
-  }
+  };
 
   try {
     if (req.body.idURL) {
@@ -136,18 +135,19 @@ router.post('/register/whatsapp', async function (req, res) {
         const id_hash = await response.buffer();
         req.body.nationalIdPhotoHash = id_hash;
 
-        const twilio_url = req.body.idURL
+        const twilio_url = req.body.idURL;
         const [accountID, messageID, mediaID] = twilio_url
-          .split("/")
+          .split('/')
           .slice(4)
           .filter((_, index) => index % 2 === 1);
 
-        tw_client.messages(messageID)
+        tw_client
+          .messages(messageID)
           .media(mediaID)
           .fetch()
           .then(media => {
-            const contentType = media.contentType
-            const [fileType, ext] = contentType.split("/");
+            const contentType = media.contentType;
+            const [fileType, ext] = contentType.split('/');
             const image_name = uuidv4();
             const filenames = resolveFilenames(image_name, `.${ext}`);
             const uploadParams = getUploadParams(
@@ -164,7 +164,7 @@ router.post('/register/whatsapp', async function (req, res) {
               } else {
                 // console.log('File uploaded ' + filenames.fileUrl);
                 req.body.user_identifier_image_url = filenames.fileUrl;
-                createUser(req.body)
+                createUser(req.body);
               }
             });
           });
@@ -220,13 +220,10 @@ router.get('/register/status/:phoneNumber', function (req, res) {
   }
 });
 
-
 router.get(
   '/migratewhatsappusers',
-  require('connect-ensure-login')
-    .ensureLoggedIn({ redirectTo: '/app/auth/login' }),
+  require('connect-ensure-login').ensureLoggedIn({ redirectTo: '/app/auth/login' }),
   function (req, res, next) {
-
     if (req.user.role === ROLES.Admin || req.user.role === ROLES.Superuser) {
       models.User.findAll({
         order: [['ID', 'ASC']],
@@ -235,7 +232,9 @@ router.get(
           let message = 'completed successfully';
           for (let i = 0; i < rows.length; i++) {
             if (rows[i].nationalIdPhotoHash === null) {
-              console.log(`no image for user ${rows[i].ID} - ${rows[i].firstName} ${rows[i].lastName}`);
+              console.log(
+                `no image for user ${rows[i].ID} - ${rows[i].firstName} ${rows[i].lastName}`
+              );
             } else {
               try {
                 const imageBuffer = Buffer.from(rows[i].nationalIdPhotoHash, 'binary');
@@ -264,7 +263,9 @@ router.get(
                       },
                     })
                       .then(_ => {
-                        console.log(`updated image for ${rows[i].ID} - ${rows[i].firstName} ${rows[i].lastName}`);
+                        console.log(
+                          `updated image for ${rows[i].ID} - ${rows[i].firstName} ${rows[i].lastName}`
+                        );
                       })
                       .catch(err => {
                         //throw err;
@@ -276,7 +277,9 @@ router.get(
                 });
               } catch (e) {
                 console.log(e);
-                console.log(`error on user ${rows[i].ID} - ${rows[i].firstName} ${rows[i].lastName}`);
+                console.log(
+                  `error on user ${rows[i].ID} - ${rows[i].firstName} ${rows[i].lastName}`
+                );
                 message = 'completed with errors please check console';
               }
             }

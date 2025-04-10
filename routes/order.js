@@ -1,7 +1,7 @@
 var express = require('express');
 var router = express.Router();
 const { check, validationResult } = require('express-validator');
-const uuidv4 = require('uuid/v4');
+const { v4: uuidv4 } = require('uuid');
 var body = require('express-validator'); //validation
 var moment = require('moment'); //datetime
 const multer = require('multer'); //middleware for handling multipart/form-data, which is primarily used for uploading files

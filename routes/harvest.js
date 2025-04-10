@@ -1,7 +1,7 @@
 var express = require('express');
 var router = express.Router();
 const { check, validationResult } = require('express-validator');
-const uuidv4 = require('uuid/v4');
+const { v4: uuidv4 } = require('uuid');
 var body = require('express-validator'); //validation
 var moment = require('moment'); //datetime
 const multer = require('multer'); //middleware for handling multipart/form-data, which is primarily used for uploading files
@@ -38,7 +38,7 @@ const authToken = process.env.TWILIO_AUTH_TOKEN;
 const tw_client = require('twilio')(accountSid, authToken);
 
 /*   function to determine rows of data that can be seen based on user role */
-function getHarvestSqlSearchCondition(user){
+function getHarvestSqlSearchCondition(user) {
   // default permission is to see only rows the user has added
   let sql_search_condition = {
     where: {
@@ -47,16 +47,13 @@ function getHarvestSqlSearchCondition(user){
     order: [['pk', 'DESC']],
   };
 
-    // admins and superusers can see all records
-    if (
-        user.role === ROLES.Admin ||
-        user.role === ROLES.Superuser
-    ) {
-      sql_search_condition = {
-        order: [['pk', 'DESC']],
-      }
-    }
-    return sql_search_condition;
+  // admins and superusers can see all records
+  if (user.role === ROLES.Admin || user.role === ROLES.Superuser) {
+    sql_search_condition = {
+      order: [['pk', 'DESC']],
+    };
+  }
+  return sql_search_condition;
 }
 
 /* GET harvest page. */
@@ -106,8 +103,7 @@ router.get(
             page_name: 'harvestlogbook',
           });
         });
-    } else
-    {
+    } else {
       res.render('error', {
         message: 'You are not authorised to view this resource.',
         title: 'Error',
@@ -346,8 +342,7 @@ router.post(
 
 // route create harvest via WhatsApp
 router.post('/save/whatsapp', async function (req, res) {
-
-  const createHarvestEntry = function(data){
+  const createHarvestEntry = function (data) {
     try {
       models.FoodprintHarvest.create(data)
         .then(_ => {
@@ -368,8 +363,7 @@ router.post('/save/whatsapp', async function (req, res) {
       console.log(e);
       res.status(500).send({ error: e, message: 'Unexpected error occurred 😤' });
     }
-  }
-
+  };
 
   let harvest_logid_uuid = uuidv4();
   let harvest_TimeStamp = moment(new Date(req.body.harvest_date)).format('YYYY-MM-DD'); //actual time of harvest in the field
@@ -408,19 +402,19 @@ router.post('/save/whatsapp', async function (req, res) {
     twilio_url: twilio_url,
     channel: channel,
     // harvest_photoHash,
-    harvest_image_url: harvest_image_url ,
+    harvest_image_url: harvest_image_url,
   };
 
   if (req.body.harvestURL) {
     try {
       twilio_url = req.body.harvestURL;
-      harvest_entry["twilio_url"] = twilio_url;
+      harvest_entry['twilio_url'] = twilio_url;
       console.log('twilio_url -' + twilio_url);
       const response = await fetch(req.body.harvestURL);
       harvest_photoHash = await response.buffer();
 
       const [accountID, messageID, mediaID] = twilio_url
-        .split("/")
+        .split('/')
         .slice(4)
         .filter((_, index) => index % 2 === 1);
 
@@ -428,18 +422,15 @@ router.post('/save/whatsapp', async function (req, res) {
       console.log('messageID -' + messageID);
       console.log('mediaID -' + mediaID);
 
-
-      tw_client.messages(messageID)
+      tw_client
+        .messages(messageID)
         .media(mediaID)
         .fetch()
         .then(media => {
-          console.log('twilio media metadata -' + media)
-          const contentType = media.contentType
-          const [fileType, ext] = contentType.split("/");
-          const filenames = resolveFilenames(
-            harvest_logid_uuid,
-            `.${ext}`
-          );
+          console.log('twilio media metadata -' + media);
+          const contentType = media.contentType;
+          const [fileType, ext] = contentType.split('/');
+          const filenames = resolveFilenames(harvest_logid_uuid, `.${ext}`);
           const uploadParams = getUploadParams(
             BucketName,
             contentType,
@@ -452,13 +443,12 @@ router.post('/save/whatsapp', async function (req, res) {
             if (error) {
               console.error(error);
             } else {
-                console.log('File uploaded ' + filenames.fileUrl);
-                harvest_entry["harvest_image_url"] = filenames.fileUrl;
-                createHarvestEntry(harvest_entry);
+              console.log('File uploaded ' + filenames.fileUrl);
+              harvest_entry['harvest_image_url'] = filenames.fileUrl;
+              createHarvestEntry(harvest_entry);
             }
           });
         });
-
     } catch (e) {
       console.log(e);
     }
@@ -796,102 +786,104 @@ router.post(
           // redirect to harvest logbook page
           res.redirect('/app/harvest');
         });
-    } else
-    {
-      req.flash(
-          'error',
-          'You are not authorised to delete Harvest records.'
-      );
+    } else {
+      req.flash('error', 'You are not authorised to delete Harvest records.');
       res.redirect('/app/harvest');
     }
   }
 );
 
 /* GET PDF of all Harvest records (as an admin) - webapp */
-router.get('/pdf/all',
-    require('connect-ensure-login').ensureLoggedIn({ redirectTo: '/app/auth/login' }),
-    function (req, res) {
-      models.FoodprintHarvest.findAll({
-        attributes: [
-          'harvest_logid',
-          'harvest_farmerName',
-          'harvest_produceName',
-          'harvest_TimeStamp',
-          'harvest_quantity',
-          'harvest_unitOfMeasure',
-          'blockchain_explorer_url',
-        ],
-        order: [['pk', 'DESC']],
-      })
-          .then(rows => {
-            const pdffileextension = '.pdf';
-            const username = req.user.username
-            const useremail = req.user.email
-            const pdfFilename = `FoodPrint_Harvest_Admin_${username}_${moment(new Date()).format('YYYY-MM-DD')}`;
-            const filenames = resolveFilenames(pdfFilename, pdffileextension);
+router.get(
+  '/pdf/all',
+  require('connect-ensure-login').ensureLoggedIn({ redirectTo: '/app/auth/login' }),
+  function (req, res) {
+    models.FoodprintHarvest.findAll({
+      attributes: [
+        'harvest_logid',
+        'harvest_farmerName',
+        'harvest_produceName',
+        'harvest_TimeStamp',
+        'harvest_quantity',
+        'harvest_unitOfMeasure',
+        'blockchain_explorer_url',
+      ],
+      order: [['pk', 'DESC']],
+    })
+      .then(rows => {
+        const pdffileextension = '.pdf';
+        const username = req.user.username;
+        const useremail = req.user.email;
+        const pdfFilename = `FoodPrint_Harvest_Admin_${username}_${moment(new Date()).format(
+          'YYYY-MM-DD'
+        )}`;
+        const filenames = resolveFilenames(pdfFilename, pdffileextension);
 
-            const stream = res.writeHead(200, {
-              'Content-Type': 'application/pdf',
-              'Content-Disposition': 'attachment;filename=' + filenames.filename,
-            });
-            pdfService.buildPDF(
-                `MASTER HARVEST ENTRIES GENERATED BY ADMIN ${username} ${useremail}
+        const stream = res.writeHead(200, {
+          'Content-Type': 'application/pdf',
+          'Content-Disposition': 'attachment;filename=' + filenames.filename,
+        });
+        pdfService.buildPDF(
+          `MASTER HARVEST ENTRIES GENERATED BY ADMIN ${username} ${useremail}
                 ${moment(new Date()).format('YYYY-MM-DD HH:mm:ss')}`,
-                harvestpdf(rows),
-                chunk => stream.write(chunk),
-                () => stream.end()
-            );
-          })
-          .catch(err => {
-            console.log('Harvest PDF err:' + err);
-            req.flash('error', err);
-          });
-    }
+          harvestpdf(rows),
+          chunk => stream.write(chunk),
+          () => stream.end()
+        );
+      })
+      .catch(err => {
+        console.log('Harvest PDF err:' + err);
+        req.flash('error', err);
+      });
+  }
 );
 
 /* GET PDF of Harvest record for farmer - webapp */
-router.get('/pdf',
-    require('connect-ensure-login').ensureLoggedIn({ redirectTo: '/app/auth/login' }),
-    function (req, res) {
-      models.FoodprintHarvest.findAll({
-            attributes: [
-              'harvest_logid',
-              'harvest_farmerName',
-              'harvest_produceName',
-              'harvest_TimeStamp',
-              'harvest_quantity',
-              'harvest_unitOfMeasure',
-              'blockchain_explorer_url',
-            ],
-            order: [['pk', 'DESC']],
-            where: {
-              harvest_user: req.user.email,
-            },
-          })
-              .then(rows => {
-                const pdffileextension = '.pdf';
-                const username = req.user.username
-                const useremail = req.user.email
-                const pdfFilename = `FoodPrint_Harvest_${username}_${moment(new Date()).format('YYYY-MM-DD')}`;
-                const filenames = resolveFilenames(pdfFilename, pdffileextension);
+router.get(
+  '/pdf',
+  require('connect-ensure-login').ensureLoggedIn({ redirectTo: '/app/auth/login' }),
+  function (req, res) {
+    models.FoodprintHarvest.findAll({
+      attributes: [
+        'harvest_logid',
+        'harvest_farmerName',
+        'harvest_produceName',
+        'harvest_TimeStamp',
+        'harvest_quantity',
+        'harvest_unitOfMeasure',
+        'blockchain_explorer_url',
+      ],
+      order: [['pk', 'DESC']],
+      where: {
+        harvest_user: req.user.email,
+      },
+    })
+      .then(rows => {
+        const pdffileextension = '.pdf';
+        const username = req.user.username;
+        const useremail = req.user.email;
+        const pdfFilename = `FoodPrint_Harvest_${username}_${moment(new Date()).format(
+          'YYYY-MM-DD'
+        )}`;
+        const filenames = resolveFilenames(pdfFilename, pdffileextension);
 
-                const stream = res.writeHead(200, {
-                  'Content-Type': 'application/pdf',
-                  'Content-Disposition': 'attachment;filename=' + filenames.filename,
-                });
-                pdfService.buildPDF(
-                  `HARVEST ENTRIES FOR ${username} ${useremail}
+        const stream = res.writeHead(200, {
+          'Content-Type': 'application/pdf',
+          'Content-Disposition': 'attachment;filename=' + filenames.filename,
+        });
+        pdfService.buildPDF(
+          `HARVEST ENTRIES FOR ${username} ${useremail}
                 ${moment(new Date()).format('YYYY-MM-DD HH:mm:ss')}`,
-                  harvestpdf(rows),
-                  chunk => stream.write(chunk),
-                  () => stream.end()
-                );
-              })
-              .catch(err => {
-                console.log('Harvest PDF err:' + err);
-                req.flash('error', err);
-              });
-    }
+          harvestpdf(rows),
+          chunk => stream.write(chunk),
+          () => stream.end()
+        );
+      })
+      .catch(err => {
+        console.log('Harvest PDF err:' + err);
+        req.flash('error', err);
+      });
+  }
 );
 
 /* GET PDF of Harvest record for farmer - whatsapp */
@@ -1018,7 +1010,6 @@ router.get(
                         console.log('Error - Update Harvest failed');
                         console.log(err);
                         message = 'completed with errors please check console';
-
                       });
                   }
                 });
@@ -1041,14 +1032,11 @@ router.get(
   }
 );
 
-router.post(
-  '/getimagehash',
-  async function(req, res, next) {
-    const response = await fetch(req.body.url);
-    const image_hash = await response.buffer();
-    const hash256 = crypto.createHash('sha256').update(image_hash).digest('base64');
-    res.send(hash256);
-  }
-);
+router.post('/getimagehash', async function (req, res, next) {
+  const response = await fetch(req.body.url);
+  const image_hash = await response.buffer();
+  const hash256 = crypto.createHash('sha256').update(image_hash).digest('base64');
+  res.send(hash256);
+});
 
 module.exports = router;
