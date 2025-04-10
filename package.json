@@ -7,7 +7,7 @@
     "start": "node server.js",
     "postinstall": "npx rimraf node_modules/**/.git",
     "clean": "npx rimraf node_modules/**/.git",
-    "heroku-postbuild": "yarn build",
+    "heroku-postbuild": "npm run build",
     "heroku-clean": "npx rimraf node_modules && npx rimraf ~/.npm && npx rimraf ~/.yarn",
     "build": "yarn clean && webpack --config ./webpack.config.js --mode production",
     "dev": "webpack-dev-server --open --mode development",
