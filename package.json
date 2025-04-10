@@ -1,53 +1,49 @@
 {
-  "name": "foodprint-app",
+  "name": "foodprint",
   "version": "1.0.0",
-  "description": "Foodprint App",
-  "main": "index.js",
+  "description": "",
+  "main": "server.js",
   "scripts": {
     "start": "node server.js",
-    "clean": "npx rimraf node_modules/**/.git",
-    "heroku-postbuild": "npm run build",
-    "heroku-clean": "npx rimraf node_modules && npx rimraf ~/.npm",
-    "build": "npm run clean && webpack --config ./webpack.config.js --mode production",
-    "dev": "webpack-dev-server --open --mode development",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "dependencies": {
-    "cookie-parser": "^1.4.7",
-    "cors": "^2.8.5",
-    "passport": "^0.4.1",
-    "dotenv": "^10.0.0",
-    "ejs": "^3.1.6",
-    "express": "^4.18.1",
-    "express-flash": "^0.0.2",
-    "express-session": "^1.18.1",
-    "heroku-ssl-redirect": "^0.1.1",
-    "morgan": "^1.10.0",
-    "pg": "^8.7.1",
+    "aws-sdk": "^2.1459.0",
+    "axios": "^1.5.0",
+    "chai": "^4.3.8",
+    "chai-http": "^4.3.0",
+    "connect-ensure-login": "^0.1.0",
+    "dotenv": "^16.4.7",
+    "express": "^5.1.0",
+    "express-validator": "^6.14.0",
+    "moment": "^2.29.1",
+    "multer": "^1.4.4",
+    "multer-s3": "^2.10.0",
+    "node-fetch": "^3.2.1",
+    "nodemailer": "^6.9.1",
+    "passport": "^0.7.0",
+    "passport-local": "^1.0.0",
+    "pg": "^8.10.0",
     "pg-hstore": "^2.3.4",
-    "react": "^17.0.2",
-    "react-dom": "^17.0.2",
-    "rimraf": "^5.0.0",
-    "sequelize": "^6.6.5",
-    "webpack": "^5.51.1",
-    "webpack-cli": "^4.8.0",
-    "webpack-dev-server": "^4.0.0"
+    "popper.js": "^1.16.1",
+    "qrcode": "^1.5.0",
+    "sequelize": "^6.29.1",
+    "sequelize-auto": "^0.8.8",
+    "swagger-jsdoc": "^6.0.0",
+    "swagger-ui-express": "^4.6.1",
+    "twilio": "^5.5.2",
+    "uuid": "^11.1.0"
   },
   "devDependencies": {
-    "shx": "^0.3.3"
+    "browser-sync": "^3.0.4",
+    "gulp": "^5.0.0",
+    "jquery": "^3.6.0",
+    "pdfkit": "^0.12.3",
+    "rimraf": "^6.0.1",
+    "shx": "^0.4.0",
+    "webpack-cli": "^6.0.1",
+    "webpack-dev-server": "^5.2.1"
   },
-  "engines": {
-    "node": "16.x",
-    "npm": "7.x"
-  },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/username/foodprint-app.git"
-  },
-  "author": "Your Name",
-  "license": "MIT",
-  "bugs": {
-    "url": "https://github.com/username/foodprint-app/issues"
-  },
-  "homepage": "https://github.com/username/foodprint-app#readme"
+  "author": "",
+  "license": "ISC"
 }
