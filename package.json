@@ -4,12 +4,11 @@
   "description": "FoodPrint server and web app",
   "main": "server.js",
   "scripts": {
-  "start": "node server.js",
-  "build": "echo 'No build needed'",
-  "dev": "webpack-dev-server --open --mode development",
-  "test": "echo \"Error: no test specified\" && exit 1"
-},
-
+    "start": "node server.js",
+    "build": "echo 'No build needed'",
+    "dev": "webpack-dev-server --open --mode development",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
   "engines": {
     "node": "20.x",
     "npm": "10.x"
@@ -23,6 +22,7 @@
     "busboy": "^1.6.0",
     "connect-ensure-login": "^0.1.0",
     "cookie-parser": "^1.4.6",
+    "cors": "^2.8.5",
     "dotenv": "^16.4.7",
     "express": "^5.1.0",
     "express-fileupload": "^1.5.1",
