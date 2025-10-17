@@ -4,11 +4,12 @@
   "description": "FoodPrint server and web app",
   "main": "server.js",
   "scripts": {
-    "start": "node server.js",
-    "build": "webpack --config webpack.config.js --mode production",
-    "dev": "webpack-dev-server --open --mode development",
-    "test": "echo \"Error: no test specified\" && exit 1"
-  },
+  "start": "node server.js",
+  "build": "echo 'No build needed'",
+  "dev": "webpack-dev-server --open --mode development",
+  "test": "echo \"Error: no test specified\" && exit 1"
+},
+
   "engines": {
     "node": "20.x",
     "npm": "10.x"
