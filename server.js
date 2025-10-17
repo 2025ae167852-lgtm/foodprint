@@ -3,7 +3,7 @@ console.log('QRCODE ROUTE FILE LOADED');
 
 const express = require('express');
 const createError = require('http-errors');
-const sslRedirect = require('heroku-ssl-redirect');
+// ❌ Removed: const sslRedirect = require('heroku-ssl-redirect');
 const cookieParser = require('cookie-parser');
 const logger = require('morgan');
 const flash = require('express-flash');
@@ -54,12 +54,10 @@ const swaggerSpecs = swaggerJSDoc(swaggerOptions);
 
 const app = express();
 
-// Redirect HTTP to HTTPS in production
+/* ✅ HTTPS redirect for Render */
 if (process.env.NODE_ENV === 'production') {
-  app.use(sslRedirect());
-  // Fallback HTTPS redirect using x-forwarded-proto
   app.use((req, res, next) => {
-    if (req.headers['x-forwarded-proto'] !== 'https') {
+    if (req.headers['x-forwarded-proto'] === 'http') {
       return res.redirect('https://' + req.headers.host + req.url);
     }
     next();
@@ -131,7 +129,7 @@ app.use('/', require('./routes/test'));
 app.use('/', require('./routes/search'));
 app.use('/', router);
 
-// Passport
+// Passport strategies
 const configureStrategy = name =>
   new LocalStrategy(
     {
@@ -183,7 +181,7 @@ app.use((err, req, res, next) => {
   res.render('error', { user: req.user, page_name: 'error' });
 });
 
-// DB + Server
+// DB + Server startup
 sequelise
   .authenticate()
   .then(() => {
