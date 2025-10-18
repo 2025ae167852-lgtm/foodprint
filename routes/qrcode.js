@@ -1,66 +1,73 @@
-console.log('QRCODE ROUTE FILE LOADED');
+// routes/qrcode.js (UPLOAD DISABLED MODE)
+
 var express = require('express');
-const { check, validationResult, sanitizeParam } = require('express-validator');
-const { Op, Sequelize } = require('sequelize');
 var router = express.Router();
-var initModels = require('../models/init-models');
-var sequelise = require('../config/db/db_sequelise');
-const CUSTOM_ENUMS = require('../utils/enums');
-const { v4: uuidv4 } = require('uuid');
+var passport = require('passport');
 var ROLES = require('../utils/roles');
-var QRCode = require('qrcode');
-var moment = require('moment'); //datetime
-var models = initModels(sequelise);
-var crypto = require('crypto');
-const hash = crypto.createHash('sha256');
-const env = process.env.NODE_ENV || 'development';
-let fs = require('fs');
 
-// 🔧 File Upload Disabled for Render Deployment (Local Only, No multer-s3 or DO Spaces)
-const multer = require('multer');
-const path = require('path');
-const moment = require('moment'); // Ensure moment is already required in your file
+var initModels = require('../models/init-models');
+var sequelize = require('../config/db/db_sequelise');
+var models = initModels(sequelize);
 
-console.log('⚠ File upload is running in LOCAL DISK MODE (multer-s3 disabled)');
-
-// Ensure uploads folder exists
-const fs = require('fs');
-const uploadDir = path.join(__dirname, '../uploads');
-if (!fs.existsSync(uploadDir)) {
-  fs.mkdirSync(uploadDir, { recursive: true });
-  console.log('Created local uploads directory:', uploadDir);
-}
-
-// Configure local disk storage (no S3, no DigitalOcean)
-const storage = multer.diskStorage({
-  destination: function (req, file, cb) {
-    cb(null, uploadDir); // Local folder for files
-  },
-  filename: function (req, file, cb) {
-    const ext = path.extname(file.originalname);
-    const baseName = (req.body.qrcode_company_name || 'file')
-      .replace(/\s+/g, '_')
-      .toLowerCase();
-    const fileName = `${baseName}-${moment().format('YYYYMMDDHHmmss')}${ext}`;
-    cb(null, fileName);
-  },
-});
-
-// Export upload middleware
-const upload = multer({ storage: storage });
-
-// Export empty mocks for compatibility (so other code doesn’t crash)
-const uploadConnection = null;
-const getUploadParams = null;
-const resolveFilenames = null;
-
-// ✅ Export only `upload` so routes continue working
-module.exports = {
-  upload,
-  uploadConnection,
-  getUploadParams,
-  resolveFilenames,
+// 🔴 Upload disabled placeholder functions
+const uploadDisabled = (req, res, next) => {
+  console.log("File upload is currently disabled.");
+  req.file = null;
+  req.files = [];
+  next();
 };
+
+// Example route where upload was used
+router.post(
+  '/create',
+  passport.authenticate('jwt', { session: false }),
+  uploadDisabled, // 🔴 Replace upload middleware with disabled stub
+  async (req, res) => {
+    try {
+      const { qrcode_company_name, qrcode_message } = req.body;
+
+      // No file handling
+      console.log("Upload skipped. Using placeholder data if needed.");
+
+      // Create QR code entry without file
+      const newQR = await models.foodprint_qrcode.create({
+        qrcode_company_name,
+        qrcode_message,
+        // image_url: null or default placeholder
+      });
+
+      res.json({ success: true, message: "QR Code created (file upload disabled)", data: newQR });
+    } catch (error) {
+      console.error("Error creating QR code:", error);
+      res.status(500).json({ success: false, error: "Server error" });
+    }
+  }
+);
+
+// Apply similar changes to other routes
+router.post(
+  '/edit/:id',
+  passport.authenticate('jwt', { session: false }),
+  uploadDisabled,
+  async (req, res) => {
+    try {
+      const qrId = req.params.id;
+      const { qrcode_message } = req.body;
+
+      const qrItem = await models.foodprint_qrcode.findByPk(qrId);
+      if (!qrItem) return res.status(404).json({ success: false, error: "QR Code not found" });
+
+      await qrItem.update({ qrcode_message });
+
+      res.json({ success: true, message: "QR Code updated (file upload disabled)" });
+    } catch (error) {
+      console.error("Error editing QR code:", error);
+      res.status(500).json({ success: false, error: "Server error" });
+    }
+  }
+);
+
+module.exports = router;
 
 
 //market checkin XmlHTTP request
