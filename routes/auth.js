@@ -6,18 +6,22 @@ const fetch = (...args) => import('node-fetch').then(({ default: fetch }) => fet
 
 var initModels = require('../models/init-models');
 var sequelise = require('../config/db/db_sequelise');
-
 var models = initModels(sequelise);
 
-const {
-  getUploadParams,
-  resolveFilenames,
-  uploadConnection,
-} = require('../config/digitalocean/file-upload-mock');
+// ✅ LOCAL FILE UPLOAD MODE (DigitalOcean disabled for Render)
+console.log('⚠ DigitalOcean uploads are disabled. Using LOCAL DISK mode.');
+
+const { upload } = require('../config/digitalocean/file-upload-mock'); // Only `upload` is required now
+
+// These are disabled but kept as placeholders so other code doesn't break
+const getUploadParams = null;
+const resolveFilenames = null;
+const uploadConnection = null;
+
 const { getMimeType } = require('../utils/image_mimetypes');
 const { v4: uuidv4 } = require('uuid');
 
-const BucketName = process.env.DO_BUCKET_NAME;
+const BucketName = process.env.DO_BUCKET_NAME || 'LOCAL_MODE_DISABLED';
 
 const accountSid = process.env.TWILIO_ACCOUNT_SID;
 const authToken = process.env.TWILIO_AUTH_TOKEN;
@@ -28,9 +32,15 @@ router.get('/login', function (req, res) {
   if (req.user) {
     res.redirect('/');
   } else {
-    res.render('login', { title: 'FoodPrint - User Login', user: req.user, page_name: 'login' });
+    res.render('login', {
+      title: 'FoodPrint - User Login',
+      user: req.user,
+      page_name: 'login'
+    });
   }
 });
+
+module.exports = router;
 
 /* Process Login form submission (File Based Auth). */
 /* TODO add a user not found message */
