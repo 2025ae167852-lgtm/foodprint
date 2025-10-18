@@ -11,32 +11,40 @@ var models = initModels(sequelize);
 
 // 🔴 Upload disabled placeholder functions
 const uploadDisabled = (req, res, next) => {
-  console.log("File upload is currently disabled.");
+  console.log("⚠ File upload is currently disabled.");
   req.file = null;
   req.files = [];
   next();
 };
 
-// Example route where upload was used
+// ✅ CREATE QR CODE (Upload Disabled)
 router.post(
   '/create',
   passport.authenticate('jwt', { session: false }),
-  uploadDisabled, // 🔴 Replace upload middleware with disabled stub
+  uploadDisabled, // Replace upload middleware with disabled stub
   async (req, res) => {
     try {
       const { qrcode_company_name, qrcode_message } = req.body;
 
-      // No file handling
-      console.log("Upload skipped. Using placeholder data if needed.");
+      if (!qrcode_company_name || !qrcode_message) {
+        return res.status(400).json({
+          success: false,
+          error: "qrcode_company_name and qrcode_message are required fields",
+        });
+      }
 
-      // Create QR code entry without file
+      // Create entry without image upload
       const newQR = await models.foodprint_qrcode.create({
         qrcode_company_name,
         qrcode_message,
-        // image_url: null or default placeholder
+        image_url: null, // IMPORTANT: no file, so set null or default
       });
 
-      res.json({ success: true, message: "QR Code created (file upload disabled)", data: newQR });
+      res.json({
+        success: true,
+        message: "✅ QR Code created (file upload disabled)",
+        data: newQR,
+      });
     } catch (error) {
       console.error("Error creating QR code:", error);
       res.status(500).json({ success: false, error: "Server error" });
@@ -44,7 +52,7 @@ router.post(
   }
 );
 
-// Apply similar changes to other routes
+// ✅ EDIT QR CODE (Upload Disabled)
 router.post(
   '/edit/:id',
   passport.authenticate('jwt', { session: false }),
@@ -52,16 +60,42 @@ router.post(
   async (req, res) => {
     try {
       const qrId = req.params.id;
-      const { qrcode_message } = req.body;
+      const { qrcode_message, qrcode_company_name } = req.body;
 
       const qrItem = await models.foodprint_qrcode.findByPk(qrId);
-      if (!qrItem) return res.status(404).json({ success: false, error: "QR Code not found" });
+      if (!qrItem) {
+        return res.status(404).json({ success: false, error: "QR Code not found" });
+      }
 
-      await qrItem.update({ qrcode_message });
+      await qrItem.update({
+        qrcode_message: qrcode_message || qrItem.qrcode_message,
+        qrcode_company_name: qrcode_company_name || qrItem.qrcode_company_name,
+      });
 
-      res.json({ success: true, message: "QR Code updated (file upload disabled)" });
+      res.json({ success: true, message: "✅ QR Code updated (file upload disabled)" });
     } catch (error) {
       console.error("Error editing QR code:", error);
+      res.status(500).json({ success: false, error: "Server error" });
+    }
+  }
+);
+
+// ✅ DELETE QR CODE (optional)
+router.post(
+  '/delete/:id',
+  passport.authenticate('jwt', { session: false }),
+  async (req, res) => {
+    try {
+      const qrId = req.params.id;
+      const deleted = await models.foodprint_qrcode.destroy({ where: { id: qrId } });
+
+      if (!deleted) {
+        return res.status(404).json({ success: false, error: "QR Code not found" });
+      }
+
+      res.json({ success: true, message: "✅ QR Code deleted successfully" });
+    } catch (error) {
+      console.error("Error deleting QR code:", error);
       res.status(500).json({ success: false, error: "Server error" });
     }
   }
