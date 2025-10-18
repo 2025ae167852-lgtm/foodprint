@@ -16,7 +16,7 @@ const {
   getUploadParams,
   resolveFilenames,
   uploadConnection,
-} = require('../config/digitalocean/file-upload');
+} = require('../config/digitalocean/file-upload-mock');
 const pdfService = require('../config/pdf/pdf-service');
 const { storagepdf } = require('../config/pdf/storagepdf');
 //Name of your DO bucket here

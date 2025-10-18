@@ -21,7 +21,7 @@ const {
   uploadConnection,
   getUploadParams,
   resolveFilenames,
-} = require('../config/digitalocean/file-upload');
+} = require('../config/digitalocean/file-upload-mock');
 
 const multerS3 = require('multer-s3');
 

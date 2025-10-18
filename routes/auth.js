@@ -13,7 +13,7 @@ const {
   getUploadParams,
   resolveFilenames,
   uploadConnection,
-} = require('../config/digitalocean/file-upload');
+} = require('../config/digitalocean/file-upload-mock');
 const { getMimeType } = require('../utils/image_mimetypes');
 const { v4: uuidv4 } = require('uuid');
 

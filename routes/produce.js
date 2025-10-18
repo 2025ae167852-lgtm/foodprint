@@ -14,7 +14,7 @@ const {
   uploadConnection,
   getUploadParams,
   resolveFilenames,
-} = require('../config/digitalocean/file-upload');
+} = require('../config/digitalocean/file-upload-mock');
 
 //pdfservice
 const pdfService = require('../config/pdf/pdf-service');
