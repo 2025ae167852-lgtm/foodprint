@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>FoodPrint Dashboard — Demo</title>
+  <link rel="stylesheet" href="assets/css/styles.css" />
+</head>
+<body>
+  <header class="site-header">
+    <div class="container">
+      <h1>FoodPrint — Dashboard (Demo)</h1>
+      <nav>
+        <a href="index.html">Home</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="container">
+    <section id="controls" class="controls-row">
+      <button id="download-csv">Download CSV</button>
+      <button id="download-pdf">Download PDF</button>
+      <input id="search" placeholder="Filter produce..." />
+    </section>
+
+    <section class="grid">
+      <div class="card">
+        <h3>Harvest by Produce (demo)</h3>
+        <canvas id="harvestChart" width="400" height="250"></canvas>
+      </div>
+
+      <div class="card">
+        <h3>Recent Harvest Records</h3>
+        <div class="table-wrap">
+          <table id="harvestTable">
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th>Farmer</th>
+                <th>Produce</th>
+                <th>Quantity</th>
+                <th>Location</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container">
+      <small>FoodPrint demo • Static frontend</small>
+    </div>
+  </footer>
+
+  <script src="assets/js/libs.js"></script>
+  <script src="assets/js/dashboard.js"></script>
+</body>
+</html>
