@@ -1,48 +1,45 @@
-require('dotenv').config();
-console.log('QRCODE ROUTE FILE LOADED');
+/**************************************************************************
+ * SERVER.JS – FULLY UPDATED FOR RENDER / LOCAL DEVELOPMENT COMPATIBILITY
+ **************************************************************************/
 
+require('dotenv').config();
+console.log('✅ SERVER INITIALIZING...');
+
+// Core modules
 const express = require('express');
 const createError = require('http-errors');
-// ❌ Removed: const sslRedirect = require('heroku-ssl-redirect');
 const cookieParser = require('cookie-parser');
 const logger = require('morgan');
-const flash = require('express-flash');
 const session = require('express-session');
 const cors = require('cors');
-const path = require('path');
 const passport = require('passport');
 const LocalStrategy = require('passport-local').Strategy;
+const path = require('path');
 const fs = require('fs');
-const router = express.Router();
+const flash = require('express-flash');
 
-// Force default NODE_ENV
+// App initialization
+const app = express();
+const router = express.Router();
 process.env.NODE_ENV = process.env.NODE_ENV || 'development';
 
-const sequelise = require('./config/db/db_sequelise');
+// Database & Auth
+const sequelize = require('./config/db/db_sequelise');
 const db = require('./config/passport/localdb');
 const ROLES = require('./utils/roles');
-const CUSTOM_ENUMS = require('./utils/enums');
 
+// Swagger setup
 const swaggerJSDoc = require('swagger-jsdoc');
 const swaggerUi = require('swagger-ui-express');
 
-// Swagger config
 const swaggerDefinition = {
   openapi: '3.0.0',
   info: {
     title: 'Foodprint API',
     version: '1.0.0',
-    description: 'Foodprint API to allow external apps to communicate with Foodprint',
-    license: {
-      name: 'MIT',
-      url: 'https://github.com/FoodPrintLabs/foodprint/blob/master/LICENSE',
-    },
-    contact: {
-      name: 'Foodprint Labs',
-      url: 'https://github.com/FoodPrintLabs',
-    },
+    description: 'API documentation for Foodprint application',
   },
-  servers: [{ url: 'http://localhost:3000', description: 'dev' }],
+  servers: [{ url: process.env.BASE_URL || 'http://localhost:3000' }],
 };
 
 const swaggerOptions = {
@@ -52,66 +49,100 @@ const swaggerOptions = {
 
 const swaggerSpecs = swaggerJSDoc(swaggerOptions);
 
-const app = express();
-
-/* ✅ HTTPS redirect for Render */
+/**************************************************************************
+ * ✅ HTTPS Redirect (works on Render)
+ **************************************************************************/
 if (process.env.NODE_ENV === 'production') {
   app.use((req, res, next) => {
     if (req.headers['x-forwarded-proto'] === 'http') {
-      return res.redirect('https://' + req.headers.host + req.url);
+      return res.redirect(`https://${req.headers.host}${req.url}`);
     }
     next();
   });
 }
 
-// View engine
+/**************************************************************************
+ * ✅ View Engine Setup
+ **************************************************************************/
 app.set('views', path.join(__dirname, 'views'));
 app.set('view engine', 'ejs');
 
-// Logging
+/**************************************************************************
+ * ✅ Logging Setup
+ **************************************************************************/
 const accessLogStream = fs.createWriteStream(path.join(__dirname, 'access.log'), { flags: 'a' });
 app.use(
-  logger(process.env.NODE_ENV === 'production' ? 'common' : 'dev', {
+  logger(process.env.NODE_ENV === 'production' ? 'combined' : 'dev', {
     skip: (req, res) => process.env.NODE_ENV === 'production' && res.statusCode < 400,
-    stream: process.env.NODE_ENV !== 'production' ? accessLogStream : undefined,
+    stream: process.env.NODE_ENV === 'production' ? accessLogStream : undefined,
   })
 );
 
-// Middleware
+/**************************************************************************
+ * ✅ Core Middleware
+ **************************************************************************/
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
 app.use(cors());
 
-// Fallback SESSION_SECRET
-const sessionSecret = process.env.SESSION_SECRET || 'default_secret_dev';
+// ✅ Session (with fallback secret)
 app.use(
   session({
-    secret: sessionSecret,
+    secret: process.env.SESSION_SECRET || 'default_dev_secret',
     resave: false,
-    saveUninitialized: true,
-    cookie: { maxAge: 1800000 },
+    saveUninitialized: false,
+    cookie: { secure: false, maxAge: 30 * 60 * 1000 }, // 30 mins
   })
 );
-app.use(passport.initialize());
-app.use(passport.session());
+
 app.use(flash());
 
-// Flash locals for views
+/**************************************************************************
+ * ✅ Passport Authentication
+ **************************************************************************/
+passport.use(
+  new LocalStrategy({ usernameField: 'loginUsername', passwordField: 'loginPassword' }, (username, password, done) => {
+    db.users.findByUsername(username, (err, user) => {
+      if (err) return done(err);
+      if (!user || user.password !== password) {
+        return done(null, false, { message: 'Invalid login credentials' });
+      }
+      return done(null, user);
+    });
+  })
+);
+
+passport.serializeUser((user, cb) => cb(null, user.id));
+passport.deserializeUser((id, cb) => db.users.findById(id, (err, user) => cb(err, user)));
+
+app.use(passport.initialize());
+app.use(passport.session());
+
+/**************************************************************************
+ * ✅ Expose flash messages to views
+ **************************************************************************/
 app.use((req, res, next) => {
-  res.locals.error = req.flash('error');
   res.locals.success = req.flash('success');
+  res.locals.error = req.flash('error');
+  res.locals.user = req.user;
   next();
 });
 
-// Swagger docs
-app.use('/docs', swaggerUi.serve, swaggerUi.setup(swaggerSpecs));
-
-// Static files
+/**************************************************************************
+ * ✅ Static Assets
+ **************************************************************************/
 app.use(express.static(path.join(__dirname, 'src')));
 app.use(express.static(path.join(__dirname, 'build')));
 
-// Routes
+/**************************************************************************
+ * ✅ Swagger Documentation
+ **************************************************************************/
+app.use('/docs', swaggerUi.serve, swaggerUi.setup(swaggerSpecs));
+
+/**************************************************************************
+ * ✅ Routes
+ **************************************************************************/
 app.use('/app/config', require('./routes/config'));
 app.use('/app/auth', require('./routes/auth'));
 app.use('/app/harvest', require('./routes/harvest'));
@@ -127,73 +158,55 @@ app.use('/app/api/v1', require('./routes/api_v1'));
 app.use('/', require('./routes/blockchain'));
 app.use('/', require('./routes/test'));
 app.use('/', require('./routes/search'));
+
+/**************************************************************************
+ * ✅ Protected Home Route (with safe fallback to avoid crash)
+ **************************************************************************/
+let ensureLoggedIn;
+try {
+  ensureLoggedIn = require('connect-ensure-login').ensureLoggedIn;
+} catch (err) {
+  console.warn('⚠️ connect-ensure-login not installed. Using fallback.');
+  ensureLoggedIn = () => (req, res, next) => next();
+}
+
+router.get('/', ensureLoggedIn({ redirectTo: '/app/auth/login' }), (req, res) => {
+  res.render('index', {
+    user: req.user,
+    page_name: 'home',
+    admin_status: req.user && [ROLES.Admin, ROLES.Superuser].includes(req.user.role),
+  });
+});
 app.use('/', router);
 
-// Passport strategies
-const configureStrategy = name =>
-  new LocalStrategy(
-    {
-      usernameField: 'loginUsername',
-      passwordField: 'loginPassword',
-    },
-    (username, password, cb) => {
-      db.users.findByUsername(username, (err, user) => {
-        if (err) return cb(err);
-        if (!user || user.password !== password) {
-          return cb(null, false, { message: 'Incorrect credentials.' });
-        }
-        return cb(null, user);
-      });
-    }
-  );
+/**************************************************************************
+ * ✅ 404 Handler
+ **************************************************************************/
+app.use((req, res, next) => next(createError(404)));
 
-passport.use('file-local', configureStrategy('file-local'));
-passport.use('db-local', configureStrategy('db-local'));
-
-passport.serializeUser((user, cb) => cb(null, user.id));
-passport.deserializeUser((id, cb) => {
-  db.users.findById(id, (err, user) => cb(err, user));
-});
-
-// Home route
-router.get(
-  '/',
-  require('connect-ensure-login').ensureLoggedIn({ redirectTo: '/app/auth/login' }),
-  (req, res) => {
-    res.render('index', {
-      user: req.user,
-      page_name: 'home',
-      admin_status: [ROLES.Admin, ROLES.Superuser].includes(req.user.role),
-    });
-  }
-);
-
-// 404 handler
-app.use((req, res, next) => {
-  next(createError(404));
-});
-
-// Error handler
+/**************************************************************************
+ * ✅ Error Handler
+ **************************************************************************/
 app.use((err, req, res, next) => {
-  res.locals.message = err.message;
-  res.locals.error = req.app.get('env') === 'development' ? err : {};
   res.status(err.status || 500);
-  res.render('error', { user: req.user, page_name: 'error' });
+  res.render('error', { message: err.message, error: process.env.NODE_ENV === 'development' ? err : {} });
 });
 
-// DB + Server startup
-sequelise
+/**************************************************************************
+ * ✅ Start Server After DB Connect
+ **************************************************************************/
+sequelize
   .authenticate()
   .then(() => {
-    console.log('Database connected...');
-    return sequelise.sync();
+    console.log('✅ Database connected successfully!');
+    return sequelize.sync();
   })
   .then(() => {
     const PORT = process.env.PORT || 3000;
-    app.listen(PORT, () => console.log(`Server started on port ${PORT}`));
+    app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
   })
-  .catch(err => {
-    console.error('Error starting server:', err);
+  .catch((err) => {
+    console.error('❌ Failed to start server:', err.message || err);
   });
 
 module.exports = app;

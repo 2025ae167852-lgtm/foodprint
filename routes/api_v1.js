@@ -1,7 +1,7 @@
 let express = require('express');
 let router = express.Router();
 const { check, validationResult } = require('express-validator');
-const uuidv4 = require('uuid/v4');
+const { v4: uuidv4 } = require('uuid');
 // let body = require('express-validator');
 let moment = require('moment');
 const fetch = (...args) => import('node-fetch').then(({ default: fetch }) => fetch(...args));
