@@ -16,37 +16,52 @@ const hash = crypto.createHash('sha256');
 const env = process.env.NODE_ENV || 'development';
 let fs = require('fs');
 
-//Digital Ocean File Upload
-const {
-  uploadConnection,
-  getUploadParams,
-  resolveFilenames,
-} = require('../config/digitalocean/file-upload-mock');
-
-const multerS3 = require('multer-s3');
-
-//Name of your DO bucket here
-const BucketName = process.env.DO_BUCKET_NAME;
-
-//upload header added to route
+// 🔧 File Upload Disabled for Render Deployment (Local Only, No multer-s3 or DO Spaces)
 const multer = require('multer');
 const path = require('path');
+const moment = require('moment'); // Ensure moment is already required in your file
 
-// Make sure 'uploads/' folder exists
+console.log('⚠ File upload is running in LOCAL DISK MODE (multer-s3 disabled)');
+
+// Ensure uploads folder exists
+const fs = require('fs');
+const uploadDir = path.join(__dirname, '../uploads');
+if (!fs.existsSync(uploadDir)) {
+  fs.mkdirSync(uploadDir, { recursive: true });
+  console.log('Created local uploads directory:', uploadDir);
+}
+
+// Configure local disk storage (no S3, no DigitalOcean)
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
-    cb(null, 'uploads/'); // Local uploads go here
+    cb(null, uploadDir); // Local folder for files
   },
   filename: function (req, file, cb) {
     const ext = path.extname(file.originalname);
-    const baseName = req.body.qrcode_company_name || 'file';
-    const fileName =
-      baseName.replace(/\s+/g, '_').toLowerCase() + '-' + moment().format('YYYYMMDDHHmmss') + ext;
+    const baseName = (req.body.qrcode_company_name || 'file')
+      .replace(/\s+/g, '_')
+      .toLowerCase();
+    const fileName = `${baseName}-${moment().format('YYYYMMDDHHmmss')}${ext}`;
     cb(null, fileName);
   },
 });
 
+// Export upload middleware
 const upload = multer({ storage: storage });
+
+// Export empty mocks for compatibility (so other code doesn’t crash)
+const uploadConnection = null;
+const getUploadParams = null;
+const resolveFilenames = null;
+
+// ✅ Export only `upload` so routes continue working
+module.exports = {
+  upload,
+  uploadConnection,
+  getUploadParams,
+  resolveFilenames,
+};
+
 
 //market checkin XmlHTTP request
 router.post(
