@@ -252,23 +252,25 @@ const hasEmailCredentials =
 if (isEmailEnabled && hasEmailCredentials) {
   try {
     const nodemailer = require('nodemailer');
-    emailTransporter = nodemailer.createTransport({
-      host: process.env.EMAIL_HOST,
-      port: parseInt(process.env.EMAIL_PORT || '587', 10),
-      secure: process.env.EMAIL_SECURE === 'true',
-      auth: {
-        user: process.env.EMAIL_ADDRESS,
-        pass: process.env.EMAIL_PASSWORD,
-      },
-      tls: { rejectUnauthorized: false },
-    });
     
-    // Disable email verification to prevent SSL/TLS errors
-    // emailTransporter
-    //   .verify()
-    //   .then(() => console.log('Email transporter ready'))
-    //   .catch(e => console.error('Email verify failed:', e.message || e));
-    console.log('Email transport configured (verification disabled)');
+    // Triple check credentials before creating transport
+    if (!process.env.EMAIL_HOST || !process.env.EMAIL_ADDRESS || !process.env.EMAIL_PASSWORD) {
+      console.warn('Email credentials incomplete - transport NOT created');
+      emailTransporter = null;
+    } else {
+      emailTransporter = nodemailer.createTransport({
+        host: process.env.EMAIL_HOST,
+        port: parseInt(process.env.EMAIL_PORT || '587', 10),
+        secure: process.env.EMAIL_SECURE === 'true',
+        auth: {
+          user: process.env.EMAIL_ADDRESS,
+          pass: process.env.EMAIL_PASSWORD,
+        },
+        tls: { rejectUnauthorized: false },
+      });
+      
+      console.log('Email transport configured (NOT verified - SSL/TLS errors prevented)');
+    }
   } catch (e) {
     console.error('Email init error:', e && e.message ? e.message : e);
     emailTransporter = null;
@@ -279,6 +281,7 @@ if (isEmailEnabled && hasEmailCredentials) {
   } else {
     console.warn('Email disabled - missing credentials.');
   }
+  emailTransporter = null;
 }
 
 // -------------------------

@@ -41,20 +41,26 @@ const shouldEnableEmail = isEmailEnabled && hasCompleteCredentials;
 
 if (shouldEnableEmail) {
   try {
-    emailTransport = nodemailer.createTransport({
-      host: process.env.EMAIL_HOST,
-      port: parseInt(process.env.EMAIL_PORT || '587', 10),
-      secure: process.env.EMAIL_SECURE === 'true' || process.env.EMAIL_PORT === '465',
-      auth: {
-        user: process.env.EMAIL_ADDRESS,
-        pass: process.env.WEBAPP_PASSWORD,
-      },
-      tls: {
-        rejectUnauthorized: false,
-      },
-    });
+    // Double check all required values are present before creating transport
+    if (!process.env.EMAIL_HOST || !process.env.EMAIL_ADDRESS || !process.env.WEBAPP_PASSWORD) {
+      console.warn('Email credentials incomplete - transport not created');
+      emailTransport = null;
+    } else {
+      emailTransport = nodemailer.createTransport({
+        host: process.env.EMAIL_HOST,
+        port: parseInt(process.env.EMAIL_PORT || '587', 10),
+        secure: process.env.EMAIL_SECURE === 'true' || process.env.EMAIL_PORT === '465',
+        auth: {
+          user: process.env.EMAIL_ADDRESS,
+          pass: process.env.WEBAPP_PASSWORD,
+        },
+        tls: {
+          rejectUnauthorized: false,
+        },
+      });
 
-    console.log('Email transport initialized');
+      console.log('Email transport initialized (NOT verified)');
+    }
   } catch (err) {
     console.error('Failed to create email transport:', err.message);
     emailTransport = null;
@@ -65,6 +71,7 @@ if (shouldEnableEmail) {
   } else {
     console.warn('Email configuration incomplete. EMAIL_HOST, EMAIL_ADDRESS, and WEBAPP_PASSWORD required.');
   }
+  emailTransport = null;
 }
 
 const customSendEmail = function (recipient, subject, body) {
