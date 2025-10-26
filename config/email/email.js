@@ -21,16 +21,25 @@ function getModels() {
 // when testing emails, in NODE_ENV=development, set EMAIL_OVERRIDE
 // if EMAIL_OVERRIDE is set, send email to it's value, prepend subject line with [TEST EMAIL], include intended recipients in the body
 
-// Only create email transport if ALL credentials are provided
+// Only create email transport if ALL credentials are provided AND EMAIL_ENABLED is true
 let emailTransport = null;
 
-// Check if all required email credentials exist and are not empty
-const hasEmailCredentials = 
-  process.env.EMAIL_HOST && process.env.EMAIL_HOST.trim() !== '' &&
-  process.env.EMAIL_ADDRESS && process.env.EMAIL_ADDRESS.trim() !== '' &&
-  process.env.WEBAPP_PASSWORD && process.env.WEBAPP_PASSWORD.trim() !== '';
+// Check if email is enabled and all required credentials exist and are not empty
+const isEmailEnabled = process.env.EMAIL_ENABLED === 'true';
+const hasCompleteCredentials = 
+  process.env.EMAIL_HOST && 
+  typeof process.env.EMAIL_HOST === 'string' &&
+  process.env.EMAIL_HOST.trim() !== '' &&
+  process.env.EMAIL_ADDRESS && 
+  typeof process.env.EMAIL_ADDRESS === 'string' &&
+  process.env.EMAIL_ADDRESS.trim() !== '' &&
+  process.env.WEBAPP_PASSWORD && 
+  typeof process.env.WEBAPP_PASSWORD === 'string' &&
+  process.env.WEBAPP_PASSWORD.trim() !== '';
 
-if (hasEmailCredentials) {
+const shouldEnableEmail = isEmailEnabled && hasCompleteCredentials;
+
+if (shouldEnableEmail) {
   try {
     emailTransport = nodemailer.createTransport({
       host: process.env.EMAIL_HOST,
@@ -45,14 +54,17 @@ if (hasEmailCredentials) {
       },
     });
 
-    // Temporarily disabled email verification to prevent startup errors
-    // TODO: Re-enable after configuring proper email credentials
-    console.log('Email transport initialized (verification disabled temporarily)');
+    console.log('Email transport initialized');
   } catch (err) {
     console.error('Failed to create email transport:', err.message);
+    emailTransport = null;
   }
 } else {
-  console.warn('Email configuration incomplete. EMAIL_HOST, EMAIL_ADDRESS, and WEBAPP_PASSWORD required.');
+  if (!isEmailEnabled) {
+    console.log('Email disabled (EMAIL_ENABLED not set to true)');
+  } else {
+    console.warn('Email configuration incomplete. EMAIL_HOST, EMAIL_ADDRESS, and WEBAPP_PASSWORD required.');
+  }
 }
 
 const customSendEmail = function (recipient, subject, body) {
