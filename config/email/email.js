@@ -19,14 +19,22 @@ const emailTransport = nodemailer.createTransport({
     user: process.env.EMAIL_ADDRESS,
     pass: process.env.WEBAPP_PASSWORD,
   },
+  secure: process.env.EMAIL_SECURE === 'true' || process.env.EMAIL_PORT === '465',
+  tls: {
+    rejectUnauthorized: false,
+  },
 });
 
 // test email connection and authentication
 console.log('Checking email connection and authentication');
 emailTransport
   .verify()
-  .then(console.log('Success - email connects and authenticates.'))
-  .catch(console.error);
+  .then(() => {
+    console.log('Success - email connects and authenticates.');
+  })
+  .catch((err) => {
+    console.error('Email verification error:', err.message || err);
+  });
 
 const customSendEmail = function (recipient, subject, body) {
   //check var
