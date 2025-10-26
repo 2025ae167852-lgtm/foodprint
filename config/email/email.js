@@ -33,16 +33,17 @@ const hasCompleteCredentials =
   process.env.EMAIL_ADDRESS && 
   typeof process.env.EMAIL_ADDRESS === 'string' &&
   process.env.EMAIL_ADDRESS.trim() !== '' &&
-  process.env.WEBAPP_PASSWORD && 
-  typeof process.env.WEBAPP_PASSWORD === 'string' &&
-  process.env.WEBAPP_PASSWORD.trim() !== '';
+  (process.env.WEBAPP_PASSWORD || process.env.EMAIL_PASSWORD) &&
+  typeof (process.env.WEBAPP_PASSWORD || process.env.EMAIL_PASSWORD) === 'string' &&
+  (process.env.WEBAPP_PASSWORD || process.env.EMAIL_PASSWORD).trim() !== '';
 
 const shouldEnableEmail = isEmailEnabled && hasCompleteCredentials;
 
 if (shouldEnableEmail) {
   try {
     // Double check all required values are present before creating transport
-    if (!process.env.EMAIL_HOST || !process.env.EMAIL_ADDRESS || !process.env.WEBAPP_PASSWORD) {
+    const emailPassword = process.env.WEBAPP_PASSWORD || process.env.EMAIL_PASSWORD;
+    if (!process.env.EMAIL_HOST || !process.env.EMAIL_ADDRESS || !emailPassword) {
       console.warn('Email credentials incomplete - transport not created');
       emailTransport = null;
     } else {
@@ -55,7 +56,7 @@ if (shouldEnableEmail) {
         requireTLS: !isSecure, // true for port 587
         auth: {
           user: process.env.EMAIL_ADDRESS,
-          pass: process.env.WEBAPP_PASSWORD,
+          pass: emailPassword,
         },
         tls: {
           // Don't reject unauthorized certificates
@@ -70,14 +71,14 @@ if (shouldEnableEmail) {
     console.error('Failed to create email transport:', err.message);
     emailTransport = null;
   }
-} else {
-  if (!isEmailEnabled) {
-    console.log('Email disabled (EMAIL_ENABLED not set to true)');
   } else {
-    console.warn('Email configuration incomplete. EMAIL_HOST, EMAIL_ADDRESS, and WEBAPP_PASSWORD required.');
+    if (!isEmailEnabled) {
+      console.log('Email disabled (EMAIL_ENABLED not set to true)');
+    } else {
+      console.warn('Email configuration incomplete. EMAIL_HOST, EMAIL_ADDRESS, and (EMAIL_PASSWORD or WEBAPP_PASSWORD) required.');
+    }
+    emailTransport = null;
   }
-  emailTransport = null;
-}
 
 const customSendEmail = function (recipient, subject, body) {
   // Early exit if email is not enabled
@@ -96,7 +97,8 @@ const customSendEmail = function (recipient, subject, body) {
   }
   
   // Additional safety check for credentials
-  if (!process.env.EMAIL_HOST || !process.env.WEBAPP_PASSWORD) {
+  const emailPassword = process.env.WEBAPP_PASSWORD || process.env.EMAIL_PASSWORD;
+  if (!process.env.EMAIL_HOST || !emailPassword) {
     return;
   }
 
