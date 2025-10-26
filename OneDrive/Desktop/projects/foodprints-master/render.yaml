@@ -1,0 +1,25 @@
+services:
+  - type: web
+    name: foodprint
+    runtime: node
+    plan: starter
+    buildCommand: npm install
+    startCommand: node server.js
+    rootDir: .
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_URL
+        fromDatabase:
+          name: foodprint-db
+          property: connectionString
+      - key: DB_DIALECT
+        value: postgres
+    healthCheckPath: /
+    autoDeploy: true
+
+databases:
+  - name: foodprint-db
+    plan: starter
+    databaseName: foodprint_db_urh4
+    user: foodprint_db_urh4_user
