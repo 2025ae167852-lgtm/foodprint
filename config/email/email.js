@@ -13,36 +13,36 @@ var models = initModels(sequelise);
 // when testing emails, in NODE_ENV=development, set EMAIL_OVERRIDE
 // if EMAIL_OVERRIDE is set, send email to it's value, prepend subject line with [TEST EMAIL], include intended recipients in the body
 
-// Only create email transport if credentials are provided
+// Only create email transport if ALL credentials are provided
 let emailTransport = null;
 
-if (process.env.EMAIL_HOST && process.env.EMAIL_ADDRESS && process.env.WEBAPP_PASSWORD) {
-  emailTransport = nodemailer.createTransport({
-    host: process.env.EMAIL_HOST,
-    port: parseInt(process.env.EMAIL_PORT || '587', 10),
-    secure: process.env.EMAIL_SECURE === 'true' || process.env.EMAIL_PORT === '465',
-    auth: {
-      user: process.env.EMAIL_ADDRESS,
-      pass: process.env.WEBAPP_PASSWORD,
-    },
-    tls: {
-      rejectUnauthorized: false,
-    },
-  });
+// Check if all required email credentials exist and are not empty
+const hasEmailCredentials = 
+  process.env.EMAIL_HOST && process.env.EMAIL_HOST.trim() !== '' &&
+  process.env.EMAIL_ADDRESS && process.env.EMAIL_ADDRESS.trim() !== '' &&
+  process.env.WEBAPP_PASSWORD && process.env.WEBAPP_PASSWORD.trim() !== '';
 
-  // Temporarily disabled email verification to prevent startup errors
-  // TODO: Re-enable after configuring proper email credentials
-  // test email connection and authentication
-  // console.log('Checking email connection and authentication');
-  // emailTransport
-  //   .verify()
-  //   .then(() => {
-  //     console.log('Success - email connects and authenticates.');
-  //   })
-  //   .catch((err) => {
-  //     console.error('Email verification error:', err.message || err);
-  //   });
-  console.log('Email transport initialized (verification disabled temporarily)');
+if (hasEmailCredentials) {
+  try {
+    emailTransport = nodemailer.createTransport({
+      host: process.env.EMAIL_HOST,
+      port: parseInt(process.env.EMAIL_PORT || '587', 10),
+      secure: process.env.EMAIL_SECURE === 'true' || process.env.EMAIL_PORT === '465',
+      auth: {
+        user: process.env.EMAIL_ADDRESS,
+        pass: process.env.WEBAPP_PASSWORD,
+      },
+      tls: {
+        rejectUnauthorized: false,
+      },
+    });
+
+    // Temporarily disabled email verification to prevent startup errors
+    // TODO: Re-enable after configuring proper email credentials
+    console.log('Email transport initialized (verification disabled temporarily)');
+  } catch (err) {
+    console.error('Failed to create email transport:', err.message);
+  }
 } else {
   console.warn('Email configuration incomplete. EMAIL_HOST, EMAIL_ADDRESS, and WEBAPP_PASSWORD required.');
 }
