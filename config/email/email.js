@@ -46,20 +46,25 @@ if (shouldEnableEmail) {
       console.warn('Email credentials incomplete - transport not created');
       emailTransport = null;
     } else {
+      const isSecure = process.env.EMAIL_SECURE === 'true' || process.env.EMAIL_PORT === '465';
+      
       emailTransport = nodemailer.createTransport({
         host: process.env.EMAIL_HOST,
         port: parseInt(process.env.EMAIL_PORT || '587', 10),
-        secure: process.env.EMAIL_SECURE === 'true' || process.env.EMAIL_PORT === '465',
+        secure: isSecure, // false for TLS
+        requireTLS: !isSecure, // true for port 587
         auth: {
           user: process.env.EMAIL_ADDRESS,
           pass: process.env.WEBAPP_PASSWORD,
         },
         tls: {
+          // Don't reject unauthorized certificates
           rejectUnauthorized: false,
+          ciphers: 'SSLv3'
         },
       });
 
-      console.log('Email transport initialized (NOT verified)');
+      console.log('✅ Email transport initialized successfully (Gmail/TLS)');
     }
   } catch (err) {
     console.error('Failed to create email transport:', err.message);

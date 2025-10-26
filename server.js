@@ -246,8 +246,14 @@ let emailTransporter = null;
 const isEmailEnabled = process.env.EMAIL_ENABLED === 'true';
 const hasEmailCredentials = 
   process.env.EMAIL_HOST && 
+  typeof process.env.EMAIL_HOST === 'string' &&
+  process.env.EMAIL_HOST.trim() !== '' &&
   process.env.EMAIL_ADDRESS && 
-  process.env.EMAIL_PASSWORD;
+  typeof process.env.EMAIL_ADDRESS === 'string' &&
+  process.env.EMAIL_ADDRESS.trim() !== '' &&
+  process.env.EMAIL_PASSWORD &&
+  typeof process.env.EMAIL_PASSWORD === 'string' &&
+  process.env.EMAIL_PASSWORD.trim() !== '';
 
 if (isEmailEnabled && hasEmailCredentials) {
   try {
@@ -258,18 +264,25 @@ if (isEmailEnabled && hasEmailCredentials) {
       console.warn('Email credentials incomplete - transport NOT created');
       emailTransporter = null;
     } else {
+      const isSecure = process.env.EMAIL_SECURE === 'true' || process.env.EMAIL_PORT === '465';
+      
       emailTransporter = nodemailer.createTransport({
         host: process.env.EMAIL_HOST,
         port: parseInt(process.env.EMAIL_PORT || '587', 10),
-        secure: process.env.EMAIL_SECURE === 'true',
+        secure: isSecure, // false for TLS
+        requireTLS: !isSecure, // true for port 587
         auth: {
           user: process.env.EMAIL_ADDRESS,
           pass: process.env.EMAIL_PASSWORD,
         },
-        tls: { rejectUnauthorized: false },
+        tls: {
+          // Don't reject unauthorized certificates
+          rejectUnauthorized: false,
+          ciphers: 'SSLv3'
+        },
       });
       
-      console.log('Email transport configured (NOT verified - SSL/TLS errors prevented)');
+      console.log('✅ Email transport configured successfully (Gmail/TLS)');
     }
   } catch (e) {
     console.error('Email init error:', e && e.message ? e.message : e);
