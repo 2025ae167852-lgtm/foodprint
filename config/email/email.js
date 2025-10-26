@@ -6,7 +6,15 @@ const { v4: uuidv4 } = require('uuid');
 var moment = require('moment'); //datetime
 var initModels = require('../../models/init-models');
 var sequelise = require('../../config/db/db_sequelise');
-var models = initModels(sequelise);
+
+// Lazy-load models to avoid connection issues during module load
+let models = null;
+function getModels() {
+  if (!models) {
+    models = initModels(sequelise);
+  }
+  return models;
+}
 
 //emailer configuration
 // Testing Emails Pattern
@@ -88,7 +96,7 @@ const customSendEmail = function (recipient, subject, body) {
         email_content: mailOptions.html,
         email_status: 'FAILED',
       };
-      models.FoodprintEmail.create(data)
+      getModels().FoodprintEmail.create(data)
         .then(_ => {
           console.log('Error - Email not sent ' + email_logid);
         })
@@ -114,7 +122,7 @@ const customSendEmail = function (recipient, subject, body) {
         email_content: mailOptions.html,
         email_status: 'SENT',
       };
-      models.FoodprintEmail.create(data)
+      getModels().FoodprintEmail.create(data)
         .then(_ => {
           console.log('Success - Email saved to DB ' + email_logid);
         })
@@ -124,7 +132,7 @@ const customSendEmail = function (recipient, subject, body) {
           console.log(err.message);
           //Update previous saved email in db
           let data_update = { email_status: 'FAILED' };
-          models.FoodprintEmail.update(data_update, {
+          getModels().FoodprintEmail.update(data_update, {
             where: {
               email_logid: email_logid,
             },
