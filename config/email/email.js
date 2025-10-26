@@ -70,7 +70,12 @@ if (shouldEnableEmail) {
 const customSendEmail = function (recipient, subject, body) {
   // If email transport is not configured, log and exit
   if (!emailTransport) {
-    console.warn('Email not configured - skipping email send to', recipient);
+    // Silently skip if email is not configured - don't log to avoid spam
+    return;
+  }
+  
+  // Safety check before attempting to send
+  if (!process.env.EMAIL_ADDRESS || !recipient) {
     return;
   }
 

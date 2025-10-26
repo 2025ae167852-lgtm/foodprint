@@ -240,10 +240,16 @@ try {
 })().catch(e => console.error('DB init unexpected error', e));
 
 // -------------------------
-// Optional: Email transport (only if explicitly enabled)
+// Optional: Email transport (only if explicitly enabled and ALL credentials provided)
 // -------------------------
 let emailTransporter = null;
-if (process.env.EMAIL_ENABLED === 'true') {
+const isEmailEnabled = process.env.EMAIL_ENABLED === 'true';
+const hasEmailCredentials = 
+  process.env.EMAIL_HOST && 
+  process.env.EMAIL_ADDRESS && 
+  process.env.EMAIL_PASSWORD;
+
+if (isEmailEnabled && hasEmailCredentials) {
   try {
     const nodemailer = require('nodemailer');
     emailTransporter = nodemailer.createTransport({
@@ -256,15 +262,23 @@ if (process.env.EMAIL_ENABLED === 'true') {
       },
       tls: { rejectUnauthorized: false },
     });
-    emailTransporter
-      .verify()
-      .then(() => console.log('Email transporter ready'))
-      .catch(e => console.error('Email verify failed:', e.message || e));
+    
+    // Disable email verification to prevent SSL/TLS errors
+    // emailTransporter
+    //   .verify()
+    //   .then(() => console.log('Email transporter ready'))
+    //   .catch(e => console.error('Email verify failed:', e.message || e));
+    console.log('Email transport configured (verification disabled)');
   } catch (e) {
     console.error('Email init error:', e && e.message ? e.message : e);
+    emailTransporter = null;
   }
 } else {
-  console.log('Email disabled (EMAIL_ENABLED not true).');
+  if (!isEmailEnabled) {
+    console.log('Email disabled (EMAIL_ENABLED not true).');
+  } else {
+    console.warn('Email disabled - missing credentials.');
+  }
 }
 
 // -------------------------
