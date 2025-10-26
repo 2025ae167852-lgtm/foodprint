@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <%- include('partials/head'); %>
+</head>
+<body>
+  <!-- loader -->
+  <div class="probootstrap-loader"></div>
+
+  <!-- header -->
+  <header role="banner" class="probootstrap-header">
+    <%- include('partials/header'); %>
+  </header>
+
+  <main class="container" style="width:100%;">
+    <div class="home-dashboard row align-items-center justify-content-center">
+      <div class="title col-12 title-global-container">
+        <h3 class="title-global">Welcome to FoodPrint</h3>
+      </div>
+
+      <%- include('partials/notificationbar'); %>
+
+      <!-- TRACK & TRACE -->
+      <section class="row">
+        <h4 style="margin-left:30px;">Track and Trace</h4>
+
+        <div class="col-12 d-flex flex-wrap">
+          <div class="card m-3">
+            <div class="card-header">
+              <p class="card-title h4"><i class="fa fa-list-alt"></i> <a href="/app/harvest">Harvest Logbook</a></p>
+            </div>
+          </div>
+
+          <div class="card m-3">
+            <div class="card-header">
+              <p class="card-title h4"><i class="fa fa-list-alt"></i> <a href="/app/storage">Handover Logbook</a></p>
+            </div>
+          </div>
+
+          <div class="card m-3">
+            <div class="card-header">
+              <p class="card-title h4"><i class="fa fa-search"></i> <a href="/app/trace_produce">Trace Produce</a></p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- WHOLESALE MARKETPLACE -->
+      <section class="row">
+        <h4 style="margin-left:30px;">Wholesale Marketplace</h4>
+        <div class="col-12 d-flex flex-wrap">
+          <div class="card m-3">
+            <div class="card-header">
+              <p class="card-title h4"><i class="fa fa-book"></i> <a href="/app/buyer">Buyer Logbook</a></p>
+            </div>
+          </div>
+
+          <div class="card m-3">
+            <div class="card-header">
+              <p class="card-title h4"><i class="fa fa-book"></i> <a href="/app/seller">Seller Logbook</a></p>
+            </div>
+          </div>
+
+          <div class="card m-3">
+            <div class="card-header">
+              <p class="card-title h4"><i class="fa fa-archive"></i> <a href="/app/order">Order Dashboard</a></p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- REPORTING & DASHBOARDS -->
+      <section class="row">
+        <h4 style="margin-left:30px;">Reporting and Dashboards</h4>
+        <div class="col-12 d-flex flex-wrap">
+          <div class="card m-3">
+            <div class="card-header">
+              <p class="card-title h4"><i class="fa fa-qrcode"></i> <a href="/app/qrcode">QR Code Analytics</a></p>
+            </div>
+          </div>
+
+          <div class="card m-3">
+            <div class="card-header">
+              <p class="card-title h4"><i class="fa fa-table"></i> <a href="/app/dashboards/admin">Admin Dashboard</a></p>
+            </div>
+          </div>
+
+          <div class="card m-3">
+            <div class="card-header">
+              <p class="card-title h4"><i class="fa fa-table"></i> <a href="/app/dashboard/farmer">Farmer Dashboard</a></p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ADMIN ONLY SECTION -->
+      <% if (admin_status) { %>
+        <section class="row">
+          <h4 style="margin-left:30px;">Configuration</h4>
+          <div class="col-12 d-flex flex-wrap">
+            <div class="card m-3">
+              <div class="card-header">
+                <p class="card-title h4"><i class="fa fa-qrcode"></i> <a href="/app/qrcode">QR Codes - Static</a></p>
+              </div>
+            </div>
+
+            <div class="card m-3">
+              <div class="card-header">
+                <p class="card-title h4"><i class="fa fa-qrcode"></i> <a href="/app/qrcode/supplierproduce">QR Codes - Supplier</a></p>
+              </div>
+            </div>
+
+            <div class="card m-3">
+              <div class="card-header">
+                <p class="card-title h4"><i class="fa fa-users"></i> <a href="/app/blockchain_explorer">Users</a></p>
+              </div>
+            </div>
+
+            <div class="card m-3">
+              <div class="card-header">
+                <p class="card-title h4"><i class="fa fa-envelope"></i> <a href="/app/email">Email Logs</a></p>
+              </div>
+            </div>
+          </div>
+        </section>
+      <% } %>
+
+      <!-- SUPPORT -->
+      <section class="row">
+        <h4 style="margin-left:30px;">Support</h4>
+        <div class="col-12 d-flex flex-wrap">
+          <div class="card m-3">
+            <div class="card-header">
+              <p class="card-title h4"><i class="fa fa-newspaper"></i> <a href="https://knowledge.foodprintlabs.com" target="_blank">Knowledge Base</a></p>
+            </div>
+          </div>
+
+          <div class="card m-3">
+            <div class="card-header">
+              <p class="card-title h4"><i class="fa fa-info-circle"></i> <a href="mailto:support@foodprintlabs.com">FoodPrint Support</a></p>
+            </div>
+          </div>
+
+          <div class="card m-3">
+            <div class="card-header">
+              <p class="card-title h4"><i class="fa fa-share"></i> <a target="_blank" href="http://foodprintlabs.com/">FoodPrint Labs Website</a></p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- OTHER -->
+      <section class="row">
+        <h4 style="margin-left:30px;">Other</h4>
+        <div class="col-12 d-flex flex-wrap">
+          <div class="card m-3">
+            <div class="card-header">
+              <p class="card-title h4"><i class="fa fa-user"></i> <a href="/app/harvest">My Account</a></p>
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <!-- footer -->
+  <%- include('partials/footer'); %>
+
+  <div class="gototop js-top">
+    <a href="#" class="js-gotop"><i class="icon-chevron-thin-up"></i></a>
+  </div>
+
+  <script src="/js/scripts.min.js"></script>
+  <script src="/js/main.min.js"></script>
+  <script src="/js/custom.js"></script>
+</body>
+</html>
