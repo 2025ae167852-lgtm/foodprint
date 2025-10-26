@@ -38,13 +38,14 @@ const sequelize = new Sequelize(connectionString, {
   },
 });
 
-sequelize
-  .authenticate()
-  .then(() => {
+// Authenticate async to avoid blocking module load
+(async () => {
+  try {
+    await sequelize.authenticate();
     console.log(`✅ Database connected successfully (${dialect.toUpperCase()})`);
-  })
-  .catch((err) => {
-    console.error('❌ Unable to connect to the database:', err);
-  });
+  } catch (err) {
+    console.error('❌ Unable to connect to the database:', err.message || err);
+  }
+})();
 
 module.exports = sequelize;

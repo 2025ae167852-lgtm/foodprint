@@ -4,13 +4,13 @@ const CUSTOM_ENUMS = require('../../utils/enums');
 const { v4: uuidv4 } = require('uuid');
 
 var moment = require('moment'); //datetime
-var initModels = require('../../models/init-models');
-var sequelise = require('../../config/db/db_sequelise');
 
-// Lazy-load models to avoid connection issues during module load
+// Lazy-load database connection and models to avoid connection issues during module load
 let models = null;
 function getModels() {
   if (!models) {
+    var initModels = require('../../models/init-models');
+    var sequelise = require('../../config/db/db_sequelise');
     models = initModels(sequelise);
   }
   return models;
