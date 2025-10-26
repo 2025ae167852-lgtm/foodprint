@@ -80,14 +80,23 @@ if (shouldEnableEmail) {
 }
 
 const customSendEmail = function (recipient, subject, body) {
-  // If email transport is not configured, log and exit
+  // Early exit if email is not enabled
+  if (process.env.EMAIL_ENABLED !== 'true') {
+    return;
+  }
+  
+  // If email transport is not configured, silently exit
   if (!emailTransport) {
-    // Silently skip if email is not configured - don't log to avoid spam
     return;
   }
   
   // Safety check before attempting to send
   if (!process.env.EMAIL_ADDRESS || !recipient) {
+    return;
+  }
+  
+  // Additional safety check for credentials
+  if (!process.env.EMAIL_HOST || !process.env.WEBAPP_PASSWORD) {
     return;
   }
 
@@ -112,7 +121,9 @@ const customSendEmail = function (recipient, subject, body) {
   let email_logid = uuidv4();
   let logdatetime = moment(new Date()).format('YYYY-MM-DD HH:mm:ss');
 
-  emailTransport.sendMail(mailOptions, function (error, info) {
+  // Wrap in try-catch to prevent any errors from bubbling up
+  try {
+    emailTransport.sendMail(mailOptions, function (error, info) {
     if (error) {
       console.log('Error sending email - ', error);
       //res.status.json({ err: error });
@@ -177,6 +188,10 @@ const customSendEmail = function (recipient, subject, body) {
         });
     }
   });
+  } catch (err) {
+    // Silently catch any sendMail errors to prevent crashes
+    console.log('Email send error caught:', err.message || err);
+  }
 };
 
 module.exports = customSendEmail;
