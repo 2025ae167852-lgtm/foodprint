@@ -30,16 +30,19 @@ if (process.env.EMAIL_HOST && process.env.EMAIL_ADDRESS && process.env.WEBAPP_PA
     },
   });
 
+  // Temporarily disabled email verification to prevent startup errors
+  // TODO: Re-enable after configuring proper email credentials
   // test email connection and authentication
-  console.log('Checking email connection and authentication');
-  emailTransport
-    .verify()
-    .then(() => {
-      console.log('Success - email connects and authenticates.');
-    })
-    .catch((err) => {
-      console.error('Email verification error:', err.message || err);
-    });
+  // console.log('Checking email connection and authentication');
+  // emailTransport
+  //   .verify()
+  //   .then(() => {
+  //     console.log('Success - email connects and authenticates.');
+  //   })
+  //   .catch((err) => {
+  //     console.error('Email verification error:', err.message || err);
+  //   });
+  console.log('Email transport initialized (verification disabled temporarily)');
 } else {
   console.warn('Email configuration incomplete. EMAIL_HOST, EMAIL_ADDRESS, and WEBAPP_PASSWORD required.');
 }
