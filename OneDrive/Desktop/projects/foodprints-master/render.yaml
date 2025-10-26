@@ -19,4 +19,3 @@ databases:
     plan: starter
     databaseName: foodprints
     user: foodprints_user
-

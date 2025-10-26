@@ -7,6 +7,7 @@
     "dev": "node server.js",
     "start": "node server.js",
     "build": "echo 'No build step configured'",
+    "postinstall": "echo 'Skipping migrations during build (Run migrations manually in a safe environment)'",
     "format": "prettier --write '**/*.{js,json,md}'",
     "test": "echo 'No tests configured'"
   },
