@@ -44,6 +44,23 @@ const sequelize = new Sequelize(connectionString, {
   try {
     await sequelize.authenticate();
     console.log(`✅ Database connected successfully (${dialect.toUpperCase()})`);
+    
+    // Sync database tables if enabled
+    const shouldSync = process.env.DB_SYNC !== 'false';
+    
+    if (shouldSync) {
+      try {
+        console.log('🔄 Loading models and syncing database...');
+        const initModels = require('../../models/init-models');
+        const models = initModels(sequelize);
+        console.log('✅ Models initialized');
+        
+        await sequelize.sync({ alter: false, force: false });
+        console.log('✅ Database tables ready.');
+      } catch (syncErr) {
+        console.error('❌ Database sync error:', syncErr.message);
+      }
+    }
   } catch (err) {
     console.error('❌ Unable to connect to the database:', err.message || err);
   }
