@@ -50,6 +50,32 @@ const sequelize = new Sequelize(connectionString, {
     
     if (shouldSync) {
       try {
+        console.log('🔄 Creating user table if it does not exist...');
+        
+        // Create user table manually first
+        await sequelize.query(`
+          CREATE TABLE IF NOT EXISTS "user" (
+            "ID" SERIAL PRIMARY KEY,
+            "firstName" VARCHAR(255),
+            "middleName" VARCHAR(255),
+            "lastName" VARCHAR(255),
+            "email" VARCHAR(255),
+            "phoneNumber" VARCHAR(255),
+            "role" VARCHAR(255),
+            "password" VARCHAR(255),
+            "passwordHash" VARCHAR(255),
+            "createdAt" TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            "registrationChannel" VARCHAR(255),
+            "nationalIdPhotoHash" BYTEA,
+            "user_identifier_image_url" VARCHAR(255),
+            "passwordResetToken" VARCHAR(255),
+            "passwordResetExpires" TIMESTAMP
+          );
+        `);
+        
+        console.log('✅ User table checked/created');
+        
+        // Now sync other models
         console.log('🔄 Loading models and syncing database...');
         const initModels = require('../../models/init-models');
         const models = initModels(sequelize);
@@ -57,11 +83,7 @@ const sequelize = new Sequelize(connectionString, {
         
         await sequelize.sync({ 
           alter: false, 
-          force: false,
-          // Disable automatic index creation to avoid conflicts
-          define: {
-            indexes: false
-          }
+          force: false
         });
         console.log('✅ Database tables ready.');
       } catch (syncErr) {
