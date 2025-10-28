@@ -277,7 +277,14 @@ try {
         console.log('✅ Models initialized');
         
         console.log('🔄 Syncing database...');
-        await sequelize.sync({ alter: false, force: false });
+        await sequelize.sync({ 
+          alter: false, 
+          force: false,
+          // Disable automatic index creation to avoid conflicts
+          define: {
+            indexes: false
+          }
+        });
         console.log('✅ Database tables ready.');
       } catch (syncErr) {
         console.error('❌ Database sync error:', syncErr.message);
