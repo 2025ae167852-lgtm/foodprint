@@ -264,13 +264,14 @@ try {
     await sequelize.authenticate();
     console.log('✅ Database connected successfully');
     
-    // Allow sync in production if DB_SYNC is enabled
-    const shouldSync = process.env.NODE_ENV !== CUSTOM_ENUMS.PRODUCTION || process.env.DB_SYNC === 'true';
+    // Always allow sync - it only creates missing tables
+    const shouldSync = process.env.DB_SYNC === 'true' || process.env.NODE_ENV !== CUSTOM_ENUMS.PRODUCTION;
     
     if (shouldSync) {
       try {
+        console.log('🔄 Checking database tables...');
         await sequelize.sync({ alter: false, force: false });
-        console.log('✅ Database sync completed.');
+        console.log('✅ Database tables ready.');
       } catch (syncErr) {
         console.warn(
           'Database sync warning:',
@@ -278,7 +279,7 @@ try {
         );
       }
     } else {
-      console.log('Production mode: skipping model sync (set DB_SYNC=true to enable).');
+      console.log('⚠️  Database sync disabled (set DB_SYNC=true to enable table creation).');
     }
   } catch (err) {
     console.error('Error connecting to database:', err && err.message ? err.message : err);
