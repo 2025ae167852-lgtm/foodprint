@@ -17,8 +17,9 @@ if (connectionString.startsWith('mysql://')) {
 
 const dialectOptions = {};
 
-// Only add SSL for PostgreSQL when explicitly enabled
-if (dialect === 'postgres' && process.env.DB_SSL === 'true') {
+// Enable SSL for PostgreSQL on Render (requires SSL by default)
+// Only disable if explicitly set to 'false'
+if (dialect === 'postgres' && process.env.DB_SSL !== 'false') {
   dialectOptions.ssl = {
     require: true,
     rejectUnauthorized: false
