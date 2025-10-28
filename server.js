@@ -263,18 +263,22 @@ try {
   try {
     await sequelize.authenticate();
     console.log('✅ Database connected successfully');
-    if (process.env.NODE_ENV !== CUSTOM_ENUMS.PRODUCTION) {
+    
+    // Allow sync in production if DB_SYNC is enabled
+    const shouldSync = process.env.NODE_ENV !== CUSTOM_ENUMS.PRODUCTION || process.env.DB_SYNC === 'true';
+    
+    if (shouldSync) {
       try {
-        await sequelize.sync();
-        console.log('Database sync (dev) completed.');
+        await sequelize.sync({ alter: false, force: false });
+        console.log('✅ Database sync completed.');
       } catch (syncErr) {
         console.warn(
-          'Database sync (dev) warning:',
+          'Database sync warning:',
           syncErr && syncErr.message ? syncErr.message : syncErr
         );
       }
     } else {
-      console.log('Production mode: skipping model sync.');
+      console.log('Production mode: skipping model sync (set DB_SYNC=true to enable).');
     }
   } catch (err) {
     console.error('Error connecting to database:', err && err.message ? err.message : err);
