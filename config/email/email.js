@@ -60,8 +60,7 @@ if (shouldEnableEmail) {
         },
         tls: {
           // Don't reject unauthorized certificates
-          rejectUnauthorized: false,
-          ciphers: 'SSLv3'
+          rejectUnauthorized: false
         },
       });
 
