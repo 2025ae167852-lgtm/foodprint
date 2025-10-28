@@ -59,6 +59,8 @@ const sequelize = new Sequelize(connectionString, {
         console.log('✅ Database tables ready.');
       } catch (syncErr) {
         console.error('❌ Database sync error:', syncErr.message);
+        console.error('Full sync error:', syncErr);
+        console.error('Stack:', syncErr.stack);
       }
     }
   } catch (err) {

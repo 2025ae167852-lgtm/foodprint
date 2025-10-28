@@ -282,6 +282,7 @@ try {
       } catch (syncErr) {
         console.error('❌ Database sync error:', syncErr.message);
         console.error('Full error:', syncErr);
+        console.error('Stack:', syncErr.stack);
         console.warn('⚠️  If tables already exist, you can set DB_SYNC=false to suppress this.');
       }
     } else {
