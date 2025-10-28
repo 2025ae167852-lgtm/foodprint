@@ -86,9 +86,21 @@ if (databaseUrl) {
   try {
     const Pool = pg.Pool;
     const SessionStore = pgSession(session);
-    const pool = new Pool({
+    
+    // Configure SSL for PostgreSQL (required on Render)
+    const poolConfig = {
       connectionString: databaseUrl,
-    });
+    };
+    
+    // Add SSL configuration unless explicitly disabled
+    if (process.env.DB_SSL !== 'false') {
+      poolConfig.ssl = {
+        require: true,
+        rejectUnauthorized: false
+      };
+    }
+    
+    const pool = new Pool(poolConfig);
     sessionConfig.store = new SessionStore({
       pool: pool,
       tableName: 'session',
