@@ -9,6 +9,7 @@
     "build": "echo 'No build step configured'",
     "postinstall": "echo 'Database migrations can be run manually with: npm run sync-db'",
     "sync-db": "node scripts/sync-database.js",
+    "init-db": "node scripts/init-database.js",
     "format": "prettier --write '**/*.{js,json,md}'",
     "test": "echo 'No tests configured'"
   },
