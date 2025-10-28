@@ -101,9 +101,30 @@ if (databaseUrl) {
     }
     
     const pool = new Pool(poolConfig);
+    
+    // Try to create the session table if it doesn't exist
+    (async () => {
+      try {
+        await pool.query(`CREATE TABLE IF NOT EXISTS "session" (
+          "sid" varchar NOT NULL,
+          "sess" json NOT NULL,
+          "expire" timestamp(6) NOT NULL,
+          CONSTRAINT "session_pkey" PRIMARY KEY ("sid")
+        )`);
+        
+        // Try to create index (will fail if exists, that's ok)
+        await pool.query(`CREATE INDEX IF NOT EXISTS "IDX_session_expire" ON "session" ("expire")`).catch(() => {});
+        
+        console.log('✅ Session table ready');
+      } catch (err) {
+        console.warn('Could not create session table (might already exist):', err.message);
+      }
+    })();
+    
     sessionConfig.store = new SessionStore({
       pool: pool,
       tableName: 'session',
+      createTableIfMissing: false, // We create it ourselves above
     });
     console.log('✅ Using PostgreSQL session store');
   } catch (e) {
