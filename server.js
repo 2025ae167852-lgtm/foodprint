@@ -270,11 +270,18 @@ try {
     
     if (shouldSync) {
       try {
-        console.log('🔄 Checking database tables...');
+        console.log('🔄 Loading models and checking database tables...');
+        // Import and initialize models so sequelize knows what tables to create
+        const initModels = require('./models/init-models');
+        const models = initModels(sequelize);
+        console.log('✅ Models initialized');
+        
+        console.log('🔄 Syncing database...');
         await sequelize.sync({ alter: false, force: false });
         console.log('✅ Database tables ready.');
       } catch (syncErr) {
         console.error('❌ Database sync error:', syncErr.message);
+        console.error('Full error:', syncErr);
         console.warn('⚠️  If tables already exist, you can set DB_SYNC=false to suppress this.');
       }
     } else {
