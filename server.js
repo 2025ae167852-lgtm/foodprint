@@ -408,14 +408,28 @@ app.get('/', (req, res) => {
 // -------------------------
 app.use((req, res, next) => next(createError(404)));
 app.use((err, req, res, next) => {
+  // Check if headers have already been sent
+  if (res.headersSent) {
+    return next(err);
+  }
+  
   res.locals.message = err.message;
   res.locals.error = process.env.NODE_ENV === CUSTOM_ENUMS.DEVELOPMENT ? err : {};
   res.status(err.status || 500);
   const errorView = path.join(__dirname, 'views', 'error.ejs');
   if (fs.existsSync(errorView)) {
-    res.render('error', { user: req.user || null, page_name: 'error' });
+    try {
+      res.render('error', { user: req.user || null, page_name: 'error' });
+    } catch (renderError) {
+      // If render fails because headers already sent, just send JSON
+      if (!res.headersSent) {
+        res.json({ error: err.message || 'Server error' });
+      }
+    }
   } else {
-    res.json({ error: err.message || 'Server error' });
+    if (!res.headersSent) {
+      res.json({ error: err.message || 'Server error' });
+    }
   }
 });
 
