@@ -50,42 +50,58 @@ const sequelize = new Sequelize(connectionString, {
     
     if (shouldSync) {
       try {
-        console.log('🔄 Creating user table if it does not exist...');
+        console.log('🔄 Creating database tables...');
         
-        // Create user table manually first
-        await sequelize.query(`
-          CREATE TABLE IF NOT EXISTS "user" (
-            "ID" SERIAL PRIMARY KEY,
-            "firstName" VARCHAR(255),
-            "middleName" VARCHAR(255),
-            "lastName" VARCHAR(255),
-            "email" VARCHAR(255),
-            "phoneNumber" VARCHAR(255),
-            "role" VARCHAR(255),
-            "password" VARCHAR(255),
-            "passwordHash" VARCHAR(255),
-            "createdAt" TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            "registrationChannel" VARCHAR(255),
-            "nationalIdPhotoHash" BYTEA,
-            "user_identifier_image_url" VARCHAR(255),
-            "passwordResetToken" VARCHAR(255),
-            "passwordResetExpires" TIMESTAMP
-          );
-        `);
+        // Create user table first (most critical for registration)
+        try {
+          await sequelize.query(`
+            CREATE TABLE IF NOT EXISTS "user" (
+              "ID" SERIAL PRIMARY KEY,
+              "firstName" VARCHAR(255),
+              "middleName" VARCHAR(255),
+              "lastName" VARCHAR(255),
+              "email" VARCHAR(255),
+              "phoneNumber" VARCHAR(255),
+              "role" VARCHAR(255),
+              "password" VARCHAR(255),
+              "passwordHash" VARCHAR(255),
+              "createdAt" TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+              "registrationChannel" VARCHAR(255),
+              "nationalIdPhotoHash" BYTEA,
+              "user_identifier_image_url" VARCHAR(255),
+              "passwordResetToken" VARCHAR(255),
+              "passwordResetExpires" TIMESTAMP
+            );
+          `);
+          console.log('✅ User table created');
+        } catch (err) {
+          console.log('⚠️ User table might already exist:', err.message);
+        }
         
-        console.log('✅ User table checked/created');
+        // Create indexes for user table
+        try {
+          await sequelize.query(`
+            CREATE INDEX IF NOT EXISTS "user_email_idx" ON "user" ("email");
+            CREATE INDEX IF NOT EXISTS "user_phoneNumber_idx" ON "user" ("phoneNumber");
+          `);
+          console.log('✅ User table indexes created');
+        } catch (err) {
+          console.log('⚠️ User indexes might already exist:', err.message);
+        }
         
-        // Now sync other models
-        console.log('🔄 Loading models and syncing database...');
+        // Now load and sync all models
+        console.log('🔄 Loading models...');
         const initModels = require('../../models/init-models');
         const models = initModels(sequelize);
-        console.log('✅ Models initialized');
+        console.log('✅ Models loaded');
         
+        // Sync other tables (this will create missing tables)
+        console.log('🔄 Syncing other tables...');
         await sequelize.sync({ 
           alter: false, 
           force: false
         });
-        console.log('✅ Database tables ready.');
+        console.log('✅ All database tables ready!');
       } catch (syncErr) {
         console.error('❌ Database sync error:', syncErr.message);
         console.error('Full sync error:', syncErr);
