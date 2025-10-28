@@ -264,8 +264,9 @@ try {
     await sequelize.authenticate();
     console.log('✅ Database connected successfully');
     
-    // Always allow sync - it only creates missing tables
-    const shouldSync = process.env.DB_SYNC === 'true' || process.env.NODE_ENV !== CUSTOM_ENUMS.PRODUCTION;
+    // Sync by default unless explicitly disabled
+    // This is safe - sync only creates missing tables, doesn't alter existing ones
+    const shouldSync = process.env.DB_SYNC !== 'false';
     
     if (shouldSync) {
       try {
@@ -273,13 +274,11 @@ try {
         await sequelize.sync({ alter: false, force: false });
         console.log('✅ Database tables ready.');
       } catch (syncErr) {
-        console.warn(
-          'Database sync warning:',
-          syncErr && syncErr.message ? syncErr.message : syncErr
-        );
+        console.error('❌ Database sync error:', syncErr.message);
+        console.warn('⚠️  If tables already exist, you can set DB_SYNC=false to suppress this.');
       }
     } else {
-      console.log('⚠️  Database sync disabled (set DB_SYNC=true to enable table creation).');
+      console.log('⚠️  Database sync disabled by DB_SYNC=false setting.');
     }
   } catch (err) {
     console.error('Error connecting to database:', err && err.message ? err.message : err);
