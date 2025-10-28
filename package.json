@@ -7,7 +7,8 @@
     "dev": "node server.js",
     "start": "node server.js",
     "build": "echo 'No build step configured'",
-    "postinstall": "echo 'Skipping migrations during build (Run migrations manually in a safe environment)'",
+    "postinstall": "echo 'Database migrations can be run manually with: npm run sync-db'",
+    "sync-db": "node scripts/sync-database.js",
     "format": "prettier --write '**/*.{js,json,md}'",
     "test": "echo 'No tests configured'"
   },
