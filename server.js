@@ -198,9 +198,18 @@ try {
   const databaseUrl = process.env.DATABASE_URL || null;
   if (databaseUrl) {
     const Sequelize = require('sequelize');
+    // Configure SSL for PostgreSQL (required on Render, optional elsewhere)
+    const dialectOptions = {};
+    // Enable SSL unless explicitly disabled
+    if (process.env.DB_SSL !== 'false') {
+      dialectOptions.ssl = {
+        require: true,
+        rejectUnauthorized: false
+      };
+    }
+    
     sequelize = new Sequelize(databaseUrl, {
-      dialectOptions:
-        process.env.DB_SSL === 'true' ? { ssl: { require: true, rejectUnauthorized: false } } : {},
+      dialectOptions,
       logging: process.env.DB_LOGGING === 'true' ? console.log : false,
     });
   } else {
