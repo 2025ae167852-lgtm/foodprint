@@ -1,0 +1,36 @@
+NODE_ENV=production
+PORT=10000
+APP_NAME=FoodPrint
+SESSION_SECRET=xo6tDRbFE0YslLgPOpSBglp9b/d4pKzL/na8lnEXyV0=
+SESSION_TOKEN_LIFETIME=3600
+EMAIL_ENABLED=true
+EMAIL_HOST=smtp.gmail.com
+EMAIL_PORT=587
+EMAIL_SECURE=false
+EMAIL_ADDRESS=your-gmail@gmail.com
+EMAIL_PASSWORD=skdizdbwljgkvqsj
+DB_SSL=false
+DB_LOGGING=false
+BLOCKCHAINENV=TESTNET
+TESTNET_ALGOD_API_KEY=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+TESTNET_ALGOD_SERVER=https://testnet-algorand.api.purestake.io/ps2
+TESTNET_ALGOINDEXER_SERVER=https://testnet-algorand.api.purestake.io/idx2
+TESTNET_ALGOD_PORT=
+DEV_ALGOD_API_KEY=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+DEV_ALGOD_SERVER=http://localhost
+DEV_ALGOD_PORT=4001
+DEV_ALGOINDEXER_PORT=8980
+MAINNET_ALGOD_API_KEY=REPLACE_WITH_MAINNET_KEY
+MAINNET_ALGOD_SERVER=https://mainnet-algorand.api.purestake.io/ps2
+MAINNET_ALGOINDEXER_SERVER=https://mainnet-algorand.api.purestake.io/idx2
+MAINNET_ALGOD_PORT=
+ACCOUNT1_MNEMONIC=leaf door bench dilemma barrel crawl display strategy silver open absorb genre salute hurdle secret point list phone derive merge sick approve assist ability hockey
+ACCOUNT2_MNEMONIC=keen just machine beach tonight stairs unhappy raise about man alert venture carbon siege cake hungry oyster scrub basic poem foster moment boss abstract column
+USER1_PASSWORD=password123
+USER2_PASSWORD=password123
+USER3_PASSWORD=password123
+USER4_PASSWORD=password123
+USER5_PASSWORD=password123
+USER6_PASSWORD=password123
+USER7_PASSWORD=password123
+
