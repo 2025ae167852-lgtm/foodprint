@@ -117,14 +117,14 @@ module.exports = function (sequelize, DataTypes) {
         type: DataTypes.STRING(255),
         allowNull: true,
       },
-    twilio_url: {
+      twilio_url: {
         type: DataTypes.STRING(255),
         allowNull: true,
-    },
-        channel: {
-            type: DataTypes.STRING(255),
-            allowNull: true,
-        },
+      },
+      channel: {
+        type: DataTypes.STRING(255),
+        allowNull: true,
+      },
       harvest_image_url: {
         type: DataTypes.STRING(255),
         allowNull: true,
@@ -134,14 +134,6 @@ module.exports = function (sequelize, DataTypes) {
       sequelize,
       tableName: 'foodprint_harvest',
       timestamps: false,
-      indexes: [
-        {
-          name: 'foodprint_harvest_PRIMARY',
-          unique: true,
-          using: 'BTREE',
-          fields: [{ name: 'pk' }],
-        },
-      ],
     }
   );
 };
