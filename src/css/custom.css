@@ -1665,7 +1665,7 @@ body {
   scroll-behavior: smooth;
   -webkit-overflow-scrolling: touch;
   scrollbar-width: thin;
-  scrollbar-color: #b2d430 #f0f0f0;
+  scrollbar-color: #4a5d14 #f0f0f0;
 }
 
 .services-container::-webkit-scrollbar {
@@ -1678,12 +1678,12 @@ body {
 }
 
 .services-container::-webkit-scrollbar-thumb {
-  background: #b2d430;
+  background: #4a5d14;
   border-radius: 10px;
 }
 
 .services-container::-webkit-scrollbar-thumb:hover {
-  background: #95b028;
+  background: #5a6d24;
 }
 
 /* Service Cards */
@@ -1699,6 +1699,7 @@ body {
   overflow: hidden;
   animation: slideInFromRight 0.6s ease-out;
   animation-fill-mode: both;
+  position: relative;
 }
 
 .service-card:nth-child(1) {
@@ -1719,14 +1720,45 @@ body {
 
 .service-card:hover {
   transform: translateY(-8px);
-  box-shadow: 0 8px 20px rgba(178, 212, 48, 0.3);
+  box-shadow: 0 8px 20px rgba(74, 93, 20, 0.4);
+}
+
+/* Background Image Container */
+.card-image {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 200px;
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  z-index: 1;
+}
+
+/* Dark Overlay for Better Text Readability */
+.card-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 200px;
+  background: linear-gradient(to bottom, rgba(74, 93, 20, 0.85) 0%, rgba(90, 109, 36, 0.75) 50%, rgba(74, 93, 20, 0.9) 100%);
+  z-index: 2;
 }
 
 .service-card .card-header {
-  background: linear-gradient(135deg, #b2d430 0%, #95b028 100%);
+  background: linear-gradient(135deg, #4a5d14 0%, #5a6d24 50%, #4a5d14 100%);
   padding: 1.5rem;
   text-align: center;
   color: white;
+  position: relative;
+  z-index: 3;
+  min-height: 200px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
 }
 
 .service-icon {
@@ -1757,6 +1789,9 @@ body {
   flex-grow: 1;
   display: flex;
   flex-direction: column;
+  position: relative;
+  z-index: 3;
+  background: #fff;
 }
 
 .service-description {
