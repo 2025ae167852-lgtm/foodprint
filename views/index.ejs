@@ -14,80 +14,124 @@
 
   <main class="container" style="width:100%;">
     <div class="home-dashboard row align-items-center justify-content-center">
-      <div class="title col-12 title-global-container">
-        <h3 class="title-global">Welcome to FoodPrint</h3>
+      <!-- Platform Introduction -->
+      <div class="platform-intro col-12">
+        <div class="title-global-container">
+          <h3 class="title-global">Welcome to FoodPrint</h3>
+        </div>
+        <div class="intro-text">
+          <p>FoodPrint is a blockchain-powered platform connecting farmers to markets and financial services. Track your produce from harvest to delivery, access wholesale marketplaces, and gain insights through comprehensive analytics and reporting tools.</p>
+        </div>
       </div>
 
       <%- include('partials/notificationbar'); %>
 
       <!-- TRACK & TRACE -->
-      <section class="row">
-        <h4 style="margin-left:30px;">Track and Trace</h4>
-
-        <div class="col-12 d-flex flex-wrap">
-          <div class="card m-3">
+      <section class="service-section">
+        <h4 class="section-title">Track and Trace</h4>
+        <p class="section-description">Monitor your produce journey from field to market with full traceability and transparency.</p>
+        <div class="services-container scroll-horizontal">
+          <div class="service-card">
             <div class="card-header">
-              <p class="card-title h4"><i class="fa fa-list-alt"></i> <a href="/app/harvest">Harvest Logbook</a></p>
+              <div class="service-icon"><i class="fa fa-list-alt"></i></div>
+              <h5 class="service-title"><a href="/app/harvest">Harvest Logbook</a></h5>
+            </div>
+            <div class="card-body">
+              <p class="service-description">Record and manage harvest details including produce type, quantity, location, and farmer information. Create digital records of your harvests for complete traceability.</p>
             </div>
           </div>
 
-          <div class="card m-3">
+          <div class="service-card">
             <div class="card-header">
-              <p class="card-title h4"><i class="fa fa-list-alt"></i> <a href="/app/storage">Handover Logbook</a></p>
+              <div class="service-icon"><i class="fa fa-list-alt"></i></div>
+              <h5 class="service-title"><a href="/app/storage">Handover Logbook</a></h5>
+            </div>
+            <div class="card-body">
+              <p class="service-description">Document the transfer of produce from farms to storage facilities or markets. Track handover details, quantities, and chain of custody for complete supply chain visibility.</p>
             </div>
           </div>
 
-          <div class="card m-3">
+          <div class="service-card">
             <div class="card-header">
-              <p class="card-title h4"><i class="fa fa-search"></i> <a href="/app/trace_produce">Trace Produce</a></p>
+              <div class="service-icon"><i class="fa fa-search"></i></div>
+              <h5 class="service-title"><a href="/app/trace_produce">Trace Produce</a></h5>
+            </div>
+            <div class="card-body">
+              <p class="service-description">Search and verify the complete journey of any produce item. View harvest details, storage history, and delivery information through our blockchain-powered traceability system.</p>
             </div>
           </div>
         </div>
       </section>
 
       <!-- WHOLESALE MARKETPLACE -->
-      <section class="row">
-        <h4 style="margin-left:30px;">Wholesale Marketplace</h4>
-        <div class="col-12 d-flex flex-wrap">
-          <div class="card m-3">
+      <section class="service-section">
+        <h4 class="section-title">Wholesale Marketplace</h4>
+        <p class="section-description">Connect buyers and sellers in a transparent marketplace for efficient produce trading.</p>
+        <div class="services-container scroll-horizontal">
+          <div class="service-card">
             <div class="card-header">
-              <p class="card-title h4"><i class="fa fa-book"></i> <a href="/app/buyer">Buyer Logbook</a></p>
+              <div class="service-icon"><i class="fa fa-book"></i></div>
+              <h5 class="service-title"><a href="/app/buyer">Buyer Logbook</a></h5>
+            </div>
+            <div class="card-body">
+              <p class="service-description">Submit bids and purchase requests for produce. Manage your buying activities, track orders, and connect directly with farmers and suppliers.</p>
             </div>
           </div>
 
-          <div class="card m-3">
+          <div class="service-card">
             <div class="card-header">
-              <p class="card-title h4"><i class="fa fa-book"></i> <a href="/app/seller">Seller Logbook</a></p>
+              <div class="service-icon"><i class="fa fa-book"></i></div>
+              <h5 class="service-title"><a href="/app/seller">Seller Logbook</a></h5>
+            </div>
+            <div class="card-body">
+              <p class="service-description">List your produce for sale and create selling offers. Manage inventory, respond to buyer bids, and complete transactions through the marketplace.</p>
             </div>
           </div>
 
-          <div class="card m-3">
+          <div class="service-card">
             <div class="card-header">
-              <p class="card-title h4"><i class="fa fa-archive"></i> <a href="/app/order">Order Dashboard</a></p>
+              <div class="service-icon"><i class="fa fa-archive"></i></div>
+              <h5 class="service-title"><a href="/app/order">Order Dashboard</a></h5>
+            </div>
+            <div class="card-body">
+              <p class="service-description">View and manage all your orders in one place. Track order status, match buyers with sellers, and monitor marketplace activity and transactions.</p>
             </div>
           </div>
         </div>
       </section>
 
       <!-- REPORTING & DASHBOARDS -->
-      <section class="row">
-        <h4 style="margin-left:30px;">Reporting and Dashboards</h4>
-        <div class="col-12 d-flex flex-wrap">
-          <div class="card m-3">
+      <section class="service-section">
+        <h4 class="section-title">Reporting and Dashboards</h4>
+        <p class="section-description">Access comprehensive analytics and insights to make data-driven decisions for your operations.</p>
+        <div class="services-container scroll-horizontal">
+          <div class="service-card">
             <div class="card-header">
-              <p class="card-title h4"><i class="fa fa-qrcode"></i> <a href="/app/qrcode">QR Code Analytics</a></p>
+              <div class="service-icon"><i class="fa fa-qrcode"></i></div>
+              <h5 class="service-title"><a href="/app/qrcode">QR Code Analytics</a></h5>
+            </div>
+            <div class="card-body">
+              <p class="service-description">Track QR code scans and usage analytics. Monitor how consumers interact with your produce labels and gain insights into product visibility and engagement.</p>
             </div>
           </div>
 
-          <div class="card m-3">
+          <div class="service-card">
             <div class="card-header">
-              <p class="card-title h4"><i class="fa fa-table"></i> <a href="/app/dashboards/admin">Admin Dashboard</a></p>
+              <div class="service-icon"><i class="fa fa-table"></i></div>
+              <h5 class="service-title"><a href="/app/dashboards/admin">Admin Dashboard</a></h5>
+            </div>
+            <div class="card-body">
+              <p class="service-description">Administrative overview of platform activity, user management, system analytics, and comprehensive reporting tools for administrators.</p>
             </div>
           </div>
 
-          <div class="card m-3">
+          <div class="service-card">
             <div class="card-header">
-              <p class="card-title h4"><i class="fa fa-table"></i> <a href="/app/dashboard/farmer">Farmer Dashboard</a></p>
+              <div class="service-icon"><i class="fa fa-table"></i></div>
+              <h5 class="service-title"><a href="/app/dashboard/farmer">Farmer Dashboard</a></h5>
+            </div>
+            <div class="card-body">
+              <p class="service-description">Personalized dashboard for farmers showing harvest summaries, sales performance, market trends, and actionable insights for your farming operations.</p>
             </div>
           </div>
         </div>
@@ -95,30 +139,47 @@
 
       <!-- ADMIN ONLY SECTION -->
       <% if (admin_status) { %>
-        <section class="row">
-          <h4 style="margin-left:30px;">Configuration</h4>
-          <div class="col-12 d-flex flex-wrap">
-            <div class="card m-3">
+        <section class="service-section">
+          <h4 class="section-title">Configuration</h4>
+          <p class="section-description">Manage platform settings, QR codes, users, and system configurations.</p>
+          <div class="services-container scroll-horizontal">
+            <div class="service-card">
               <div class="card-header">
-                <p class="card-title h4"><i class="fa fa-qrcode"></i> <a href="/app/qrcode">QR Codes - Static</a></p>
+                <div class="service-icon"><i class="fa fa-qrcode"></i></div>
+                <h5 class="service-title"><a href="/app/qrcode">QR Codes - Static</a></h5>
+              </div>
+              <div class="card-body">
+                <p class="service-description">Create and manage static QR codes for produce labeling and tracking purposes.</p>
               </div>
             </div>
 
-            <div class="card m-3">
+            <div class="service-card">
               <div class="card-header">
-                <p class="card-title h4"><i class="fa fa-qrcode"></i> <a href="/app/qrcode/supplierproduce">QR Codes - Supplier</a></p>
+                <div class="service-icon"><i class="fa fa-qrcode"></i></div>
+                <h5 class="service-title"><a href="/app/qrcode/supplierproduce">QR Codes - Supplier</a></h5>
+              </div>
+              <div class="card-body">
+                <p class="service-description">Generate supplier-specific QR codes linked to produce inventory and tracking systems.</p>
               </div>
             </div>
 
-            <div class="card m-3">
+            <div class="service-card">
               <div class="card-header">
-                <p class="card-title h4"><i class="fa fa-users"></i> <a href="/app/blockchain_explorer">Users</a></p>
+                <div class="service-icon"><i class="fa fa-users"></i></div>
+                <h5 class="service-title"><a href="/app/blockchain_explorer">Users</a></h5>
+              </div>
+              <div class="card-body">
+                <p class="service-description">Manage platform users, roles, permissions, and access controls.</p>
               </div>
             </div>
 
-            <div class="card m-3">
+            <div class="service-card">
               <div class="card-header">
-                <p class="card-title h4"><i class="fa fa-envelope"></i> <a href="/app/email">Email Logs</a></p>
+                <div class="service-icon"><i class="fa fa-envelope"></i></div>
+                <h5 class="service-title"><a href="/app/email">Email Logs</a></h5>
+              </div>
+              <div class="card-body">
+                <p class="service-description">View and monitor email notifications sent through the platform.</p>
               </div>
             </div>
           </div>
@@ -126,36 +187,54 @@
       <% } %>
 
       <!-- SUPPORT -->
-      <section class="row">
-        <h4 style="margin-left:30px;">Support</h4>
-        <div class="col-12 d-flex flex-wrap">
-          <div class="card m-3">
+      <section class="service-section">
+        <h4 class="section-title">Support</h4>
+        <p class="section-description">Get help, access resources, and connect with our support team.</p>
+        <div class="services-container scroll-horizontal">
+          <div class="service-card">
             <div class="card-header">
-              <p class="card-title h4"><i class="fa fa-newspaper"></i> <a href="https://knowledge.foodprintlabs.com" target="_blank">Knowledge Base</a></p>
+              <div class="service-icon"><i class="fa fa-newspaper"></i></div>
+              <h5 class="service-title"><a href="https://knowledge.foodprintlabs.com" target="_blank">Knowledge Base</a></h5>
+            </div>
+            <div class="card-body">
+              <p class="service-description">Browse tutorials, guides, and documentation to learn how to use FoodPrint effectively.</p>
             </div>
           </div>
 
-          <div class="card m-3">
+          <div class="service-card">
             <div class="card-header">
-              <p class="card-title h4"><i class="fa fa-info-circle"></i> <a href="mailto:support@foodprintlabs.com">FoodPrint Support</a></p>
+              <div class="service-icon"><i class="fa fa-info-circle"></i></div>
+              <h5 class="service-title"><a href="mailto:support@foodprintlabs.com">FoodPrint Support</a></h5>
+            </div>
+            <div class="card-body">
+              <p class="service-description">Contact our support team for assistance with any questions or issues you may have.</p>
             </div>
           </div>
 
-          <div class="card m-3">
+          <div class="service-card">
             <div class="card-header">
-              <p class="card-title h4"><i class="fa fa-share"></i> <a target="_blank" href="http://foodprintlabs.com/">FoodPrint Labs Website</a></p>
+              <div class="service-icon"><i class="fa fa-share"></i></div>
+              <h5 class="service-title"><a target="_blank" href="http://foodprintlabs.com/">FoodPrint Labs Website</a></h5>
+            </div>
+            <div class="card-body">
+              <p class="service-description">Visit our main website to learn more about FoodPrint Labs and our mission.</p>
             </div>
           </div>
         </div>
       </section>
 
       <!-- OTHER -->
-      <section class="row">
-        <h4 style="margin-left:30px;">Other</h4>
-        <div class="col-12 d-flex flex-wrap">
-          <div class="card m-3">
+      <section class="service-section">
+        <h4 class="section-title">My Account</h4>
+        <p class="section-description">Manage your account settings and preferences.</p>
+        <div class="services-container scroll-horizontal">
+          <div class="service-card">
             <div class="card-header">
-              <p class="card-title h4"><i class="fa fa-user"></i> <a href="/app/harvest">My Account</a></p>
+              <div class="service-icon"><i class="fa fa-user"></i></div>
+              <h5 class="service-title"><a href="/app/harvest">My Account</a></h5>
+            </div>
+            <div class="card-body">
+              <p class="service-description">View and update your profile information, preferences, and account settings.</p>
             </div>
           </div>
         </div>
