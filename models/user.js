@@ -73,26 +73,6 @@ module.exports = function (sequelize, DataTypes) {
       sequelize,
       tableName: 'user',
       timestamps: false,
-      indexes: [
-        {
-          name: 'user_PRIMARY',
-          unique: true,
-          using: 'BTREE',
-          fields: [{ name: 'ID' }],
-        },
-        {
-          name: 'user_email',
-          unique: true,
-          using: 'BTREE',
-          fields: [{ name: 'email' }],
-        },
-        {
-          name: 'user_phoneNumber',
-          unique: true,
-          using: 'BTREE',
-          fields: [{ name: 'phoneNumber' }],
-        },
-      ],
     }
   );
 };

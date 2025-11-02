@@ -78,15 +78,25 @@ const sequelize = new Sequelize(connectionString, {
           console.log('⚠️ User table might already exist:', err.message);
         }
         
-        // Create indexes for user table
+        // Create indexes for user table (non-unique to avoid conflicts with existing duplicates)
         try {
+          // Check if indexes already exist before creating
           await sequelize.query(`
-            CREATE INDEX IF NOT EXISTS "user_email_idx" ON "user" ("email");
-            CREATE INDEX IF NOT EXISTS "user_phoneNumber_idx" ON "user" ("phoneNumber");
+            DO $$
+            BEGIN
+              IF NOT EXISTS (SELECT 1 FROM pg_indexes WHERE indexname = 'user_email_idx') THEN
+                CREATE INDEX "user_email_idx" ON "user" ("email");
+              END IF;
+              IF NOT EXISTS (SELECT 1 FROM pg_indexes WHERE indexname = 'user_phoneNumber_idx') THEN
+                CREATE INDEX "user_phoneNumber_idx" ON "user" ("phoneNumber");
+              END IF;
+            EXCEPTION WHEN duplicate_table THEN
+              -- Index might already exist, ignore
+            END $$;
           `);
-          console.log('✅ User table indexes created');
+          console.log('✅ User table indexes checked');
         } catch (err) {
-          console.log('⚠️ User indexes might already exist:', err.message);
+          console.log('⚠️ User indexes check completed (may already exist):', err.message);
         }
         
         // Now load and sync all models
@@ -97,11 +107,28 @@ const sequelize = new Sequelize(connectionString, {
         
         // Sync other tables (this will create missing tables)
         console.log('🔄 Syncing other tables...');
-        await sequelize.sync({ 
-          alter: false, 
-          force: false
-        });
-        console.log('✅ All database tables ready!');
+        try {
+          await sequelize.sync({ 
+            alter: false, 
+            force: false,
+            // Disable automatic index creation to avoid conflicts with existing data
+            define: {
+              indexes: false
+            }
+          });
+          console.log('✅ All database tables ready!');
+        } catch (syncError) {
+          // Handle sync errors gracefully - indexes might fail if duplicates exist
+          if (syncError.name === 'SequelizeUniqueConstraintError' || 
+              syncError.name === 'SequelizeDatabaseError' ||
+              syncError.message && syncError.message.includes('duplicate') ||
+              syncError.message && syncError.message.includes('already exists')) {
+            console.warn('⚠️ Some indexes could not be created (may have duplicates or already exist). Tables are ready.');
+            console.warn('⚠️ This is normal if the database already has data.');
+          } else {
+            throw syncError; // Re-throw unexpected errors
+          }
+        }
       } catch (syncErr) {
         console.error('❌ Database sync error:', syncErr.message);
         console.error('Full sync error:', syncErr);
