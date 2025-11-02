@@ -58,14 +58,6 @@ module.exports = function (sequelize, DataTypes) {
       sequelize,
       tableName: 'my_orders',
       timestamps: false,
-      indexes: [
-        {
-          name: 'my_order_PRIMARY',
-          unique: true,
-          using: 'BTREE',
-          fields: [{ name: 'pk' }],
-        },
-      ],
     }
   );
 };

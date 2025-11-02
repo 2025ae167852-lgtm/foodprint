@@ -62,14 +62,6 @@ module.exports = function (sequelize, DataTypes) {
       sequelize,
       tableName: 'buyer_bid',
       timestamps: false,
-      indexes: [
-        {
-          name: 'buyer_bid_PRIMARY',
-          unique: true,
-          using: 'BTREE',
-          fields: [{ name: 'pk' }],
-        },
-      ],
     }
   );
 };

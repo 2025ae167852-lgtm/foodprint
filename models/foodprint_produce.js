@@ -22,14 +22,6 @@ module.exports = function (sequelize, DataTypes) {
       sequelize,
       tableName: 'foodprint_produce',
       timestamps: false,
-      indexes: [
-        {
-          name: 'foodprint_produce_PRIMARY',
-          unique: true,
-          using: 'BTREE',
-          fields: [{ name: 'pk' }],
-        },
-      ],
     }
   );
 };

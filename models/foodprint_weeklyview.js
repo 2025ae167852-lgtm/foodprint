@@ -194,14 +194,6 @@ module.exports = function (sequelize, DataTypes) {
       sequelize,
       tableName: 'foodprint_weeklyview',
       timestamps: false,
-      indexes: [
-        {
-          name: 'foodprint_weeklyview_PRIMARY',
-          unique: true,
-          using: 'BTREE',
-          fields: [{ name: 'pk' }],
-        },
-      ],
     }
   );
 };

@@ -62,14 +62,6 @@ module.exports = function (sequelize, DataTypes) {
       sequelize,
       tableName: 'foodprint_qrcount',
       timestamps: false,
-      indexes: [
-        {
-          name: 'foodprint_qrcount_PRIMARY',
-          unique: true,
-          using: 'BTREE',
-          fields: [{ name: 'pk' }],
-        },
-      ],
     }
   );
 };

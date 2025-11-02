@@ -34,14 +34,6 @@ module.exports = function (sequelize, DataTypes) {
       sequelize,
       tableName: 'market_subscription',
       timestamps: false,
-      indexes: [
-        {
-          name: 'market_subscription_PRIMARY',
-          unique: true,
-          using: 'BTREE',
-          fields: [{ name: 'pk' }],
-        },
-      ],
     }
   );
 };
