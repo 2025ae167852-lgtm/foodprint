@@ -13,7 +13,7 @@ initModels(sequelize);
 
 const app = express();
 
-// View engine setup (EJS assumed)
+// View engine setup
 app.set('views', path.join(__dirname, 'views'));
 app.set('view engine', 'ejs');
 
@@ -50,51 +50,25 @@ app.use((req, res, next) => {
 });
 
 // Routers
-const authRoutes = require('./routes/auth');
-const harvestRoutes = require('./routes/harvest');
-const storageRoutes = require('./routes/storage');
-const buyerRoutes = require('./routes/buyer');
-const sellerRoutes = require('./routes/seller');
-const orderRoutes = require('./routes/order');
-const dashboardsRoutes = require('./routes/dashboards');
-const qrcodeRoutes = require('./routes/qrcode');
-const searchRoutes = require('./routes/search');
-const apiV1Routes = require('./routes/api_v1');
-const emailRoutes = require('./routes/email');
-const testRoutes = require('./routes/test');
-const configRoutes = require('./routes/config');
-const blockchainRoutes = require('./routes/blockchain');
-const produceRoutes = require('./routes/produce');
+app.use('/app/auth', require('./routes/auth'));
+app.use('/app/harvest', require('./routes/harvest'));
+app.use('/app/storage', require('./routes/storage'));
+app.use('/app/buyer', require('./routes/buyer'));
+app.use('/app/seller', require('./routes/seller'));
+app.use('/app/order', require('./routes/order'));
+app.use('/app/dashboards', require('./routes/dashboards'));
+app.use('/app/qrcode', require('./routes/qrcode'));
+app.use('/app/search', require('./routes/search'));
+app.use('/app/api/v1', require('./routes/api_v1'));
+app.use('/app/email', require('./routes/email'));
+app.use('/app/test', require('./routes/test'));
+app.use('/app/config', require('./routes/config'));
+app.use('/app/blockchain', require('./routes/blockchain'));
+app.use('/app/produce', require('./routes/produce'));
 
-// Mount routes
-app.use('/app/auth', authRoutes);
-app.use('/app/harvest', harvestRoutes);
-app.use('/app/storage', storageRoutes);
-app.use('/app/buyer', buyerRoutes);
-app.use('/app/seller', sellerRoutes);
-app.use('/app/order', orderRoutes);
-app.use('/app/dashboards', dashboardsRoutes);
-app.use('/app/qrcode', qrcodeRoutes);
-app.use('/app/search', searchRoutes);
-app.use('/app/api/v1', apiV1Routes);
-app.use('/app/email', emailRoutes);
-app.use('/app/test', testRoutes);
-app.use('/app/config', configRoutes);
-app.use('/app/blockchain', blockchainRoutes);
-app.use('/app/produce', produceRoutes);
-
-<<<<<<< HEAD
 // Root route (needed for Railway healthcheck)
 app.get('/', (req, res) => {
   res.send('🚀 FoodPrint API is live!');
-=======
-// Root route
-app.get('/', (req, res) => {
-  res.render('index', {
-    title: 'FoodPrint - Home',
-    user: req.user,
-    page_name: 'home',
-  });
 });
 
 // Error handling
@@ -103,8 +77,6 @@ app.use((req, res) => {
 });
 
 // Start server (Railway requires process.env.PORT)
-=======
-// Start server
 const PORT = process.env.PORT || 8080;
 app.listen(PORT, () => {
   console.log(`🚀 FoodPrint Server is running on port ${PORT} (env=${process.env.NODE_ENV})`);
