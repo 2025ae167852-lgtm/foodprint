@@ -59,7 +59,12 @@
     "prettier": "^3.1.1"
   },
   "engines": {
+<<<<<<< HEAD
     "node": ">=14.0.0"
   },
   "repository": "https://github.com/2025ae167852-lgtm/foodprint.git"
+=======
+    "node": ">=18.x"
+  }
+>>>>>>> 9109f0f2176d186c04c5cbe0fdd1fe158a1b5f23
 }

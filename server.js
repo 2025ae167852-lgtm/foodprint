@@ -83,9 +83,18 @@ app.use('/app/config', configRoutes);
 app.use('/app/blockchain', blockchainRoutes);
 app.use('/app/produce', produceRoutes);
 
+<<<<<<< HEAD
 // Root route (needed for Railway healthcheck)
 app.get('/', (req, res) => {
   res.send('🚀 FoodPrint API is live!');
+=======
+// Root route
+app.get('/', (req, res) => {
+  res.render('index', {
+    title: 'FoodPrint - Home',
+    user: req.user,
+    page_name: 'home',
+  });
 });
 
 // Error handling
@@ -94,6 +103,8 @@ app.use((req, res) => {
 });
 
 // Start server (Railway requires process.env.PORT)
+=======
+// Start server
 const PORT = process.env.PORT || 8080;
 app.listen(PORT, () => {
   console.log(`🚀 FoodPrint Server is running on port ${PORT} (env=${process.env.NODE_ENV})`);
