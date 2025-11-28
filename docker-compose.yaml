@@ -1,18 +1,19 @@
-version: '3.3'
+version: "3.9"
+
 services:
-  database:
-    image: mysql:5.6
+  foodprint-database:
+    image: mysql:8.0
+    container_name: foodprint-database
     restart: always
     environment:
-      MYSQL_DATABASE: 'foodprint'
-      MYSQL_USER: 'admin'
-      MYSQL_PASSWORD: 'qwertyui123'
-      MYSQL_ROOT_PASSWORD: 'qwertyui123'
+      MYSQL_ROOT_PASSWORD: rootpassword   # change this to something secure
+      MYSQL_DATABASE: foodprint           # your database name
+      MYSQL_USER: foodprint_user          # optional app user
+      MYSQL_PASSWORD: foodprint_pass      # optional app user password
     ports:
-      - '3306:3306'
-    expose:
-      - '3306'
+      - "3307:3306"   # host:container mapping (avoids conflict with local MySQL)
     volumes:
-      - foodprint-db:/var/lib/database
+      - db_data:/var/lib/mysql   # persistent storage
+
 volumes:
-  foodprint-db:
+  db_data:
