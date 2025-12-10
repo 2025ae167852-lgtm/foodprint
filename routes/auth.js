@@ -32,6 +32,13 @@ router.get('/login', (req, res) => {
 router.post('/login', async (req, res) => {
   try {
     const { email, password } = req.body;
+
+    // Basic guards
+    if (!email || !password) {
+      req.flash('error', 'Email and password are required.');
+      return res.redirect('/app/auth/login');
+    }
+
     let user = await models.User.findOne({ where: { email } });
 
     if (!user) {
@@ -88,35 +95,56 @@ router.get('/register/:message?', (req, res) => {
   });
 });
 
-/* Register User */
+/* Register User (SAFE) */
 router.post('/register', async (req, res) => {
   try {
-    const { name, surname, email, confirmEmail, password, confirmPassword, phone, userType } = req.body;
+    const {
+      name,
+      surname,
+      email,
+      confirmEmail,
+      password,
+      confirmPassword,
+      phone,
+      userType
+    } = req.body;
 
+    // Guards for required fields
+    if (!email || !confirmEmail) {
+      req.flash('error', 'Email and confirmation are required.');
+      return res.redirect('/app/auth/register');
+    }
+    if (!password || !confirmPassword) {
+      req.flash('error', 'Password and confirmation are required.');
+      return res.redirect('/app/auth/register');
+    }
+
+    // Validate email and password
+    if (email !== confirmEmail) {
+      req.flash('error', 'Email addresses do not match.');
+      return res.redirect('/app/auth/register');
+    }
     if (password !== confirmPassword) {
       req.flash('error', 'Passwords do not match.');
       return res.redirect('/app/auth/register');
     }
-
     if (password.length < 6) {
       req.flash('error', 'Password must be at least 6 characters long.');
       return res.redirect('/app/auth/register');
     }
 
-    if (email !== confirmEmail) {
-      req.flash('error', 'Email addresses do not match.');
-      return res.redirect('/app/auth/register');
-    }
-
+    // Existing user check
     const existingUser = await models.User.findOne({ where: { email } });
     if (existingUser) {
       req.flash('error', 'Email already registered.');
       return res.redirect('/app/auth/register');
     }
 
+    // Hash password
     const salt = await bcrypt.genSalt(10);
     const hash = await bcrypt.hash(password, salt);
 
+    // Create new user
     await models.User.create({
       firstName: name || '',
       lastName: surname || '',
@@ -148,6 +176,12 @@ router.get('/forgot-password', (req, res) => {
 router.post('/forgot-password', async (req, res) => {
   try {
     const { email } = req.body;
+
+    if (!email) {
+      req.flash('success', 'If an account exists, a reset link has been sent.');
+      return res.redirect('/app/auth/login');
+    }
+
     const user = await models.User.findOne({ where: { email } });
 
     if (!user) {
@@ -163,6 +197,7 @@ router.post('/forgot-password', async (req, res) => {
       { where: { email } }
     );
 
+    // TODO: Send email/SMS here using configured provider
     console.log(`Reset link: https://yourdomain.com/app/auth/reset-password?token=${resetToken}&email=${email}`);
 
     req.flash('success', 'If an account exists, a reset link has been sent.');
@@ -174,7 +209,7 @@ router.post('/forgot-password', async (req, res) => {
   }
 });
 
-/* Reset Password */
+/* Reset Password (SAFE) */
 router.get('/reset-password', async (req, res) => {
   try {
     const { token, email } = req.query;
@@ -183,11 +218,12 @@ router.get('/reset-password', async (req, res) => {
       return res.redirect('/app/auth/login');
     }
 
+    const { Op } = require('sequelize');
     const user = await models.User.findOne({
       where: {
         email,
         passwordResetToken: token,
-        passwordResetExpires: { [require('sequelize').Op.gt]: new Date() },
+        passwordResetExpires: { [Op.gt]: new Date() },
       },
     });
 
@@ -214,21 +250,32 @@ router.post('/reset-password', async (req, res) => {
   try {
     const { token, email, password, confirmPassword } = req.body;
 
+    // Guards for required fields
+    if (!token || !email) {
+      req.flash('error', 'Invalid reset request.');
+      return res.redirect('/app/auth/login');
+    }
+    if (!password || !confirmPassword) {
+      req.flash('error', 'Password and confirmation are required.');
+      return res.redirect(`/app/auth/reset-password?token=${token}&email=${email}`);
+    }
+
+    // Validate password
     if (password !== confirmPassword) {
       req.flash('error', 'Passwords do not match.');
       return res.redirect(`/app/auth/reset-password?token=${token}&email=${email}`);
     }
-
     if (password.length < 6) {
       req.flash('error', 'Password must be at least 6 characters long.');
       return res.redirect(`/app/auth/reset-password?token=${token}&email=${email}`);
     }
 
+    const { Op } = require('sequelize');
     const user = await models.User.findOne({
       where: {
         email,
         passwordResetToken: token,
-        passwordResetExpires: { [require('sequelize').Op.gt]: new Date() },
+        passwordResetExpires: { [Op.gt]: new Date() },
       },
     });
 
