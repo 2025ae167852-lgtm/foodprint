@@ -6,13 +6,13 @@
   "scripts": {
     "start": "node server.js",
     "dev": "nodemon server.js",
-    "build": "echo 'No build step configured'",
-    "postinstall": "echo 'Database migrations can be run manually with: npm run sync-db'",
+    "build": "echo \"No build step configured\"",
+    "postinstall": "echo \"Database migrations can be run manually with: npm run sync-db\"",
     "sync-db": "node scripts/sync-database.js",
     "init-db": "node scripts/init-database.js",
     "create-user-table": "node scripts/create-user-table-now.js",
-    "format": "prettier --write '**/*.{js,json,md}'",
-    "test": "echo 'No tests configured'"
+    "format": "prettier --write \"**/*.{js,json,md}\"",
+    "test": "echo \"No tests configured\""
   },
   "keywords": [
     "blockchain",
@@ -34,7 +34,7 @@
     "cors": "^2.8.5",
     "dotenv": "^16.3.1",
     "ejs": "^3.1.10",
-    "express": "^5.1.0",
+    "express": "^4.19.2",
     "express-flash": "^0.0.2",
     "express-session": "^1.17.3",
     "express-validator": "^7.0.1",
@@ -42,13 +42,13 @@
     "moment": "^2.29.4",
     "morgan": "^1.10.0",
     "multer": "^1.4.5-lts.1",
-    "mysql2": "^3.15.3",
     "node-fetch": "^3.3.2",
     "nodemailer": "^6.9.7",
     "passport": "^0.7.0",
     "passport-local": "^1.0.0",
     "pdfkit": "^0.13.0",
     "pg": "^8.11.3",
+    "pg-hstore": "^2.3.4",
     "qrcode": "^1.5.3",
     "sequelize": "^6.35.0",
     "sequelize-cli": "^6.6.2",
@@ -56,15 +56,12 @@
     "uuid": "^9.0.1"
   },
   "devDependencies": {
+    "nodemon": "^3.0.1",
     "prettier": "^3.1.1"
   },
   "engines": {
-<<<<<<< HEAD
-    "node": ">=14.0.0"
+    "node": ">=18.0.0"
   },
-  "repository": "https://github.com/2025ae167852-lgtm/foodprint.git"
-=======
-    "node": ">=18.x"
-  }
->>>>>>> 9109f0f2176d186c04c5cbe0fdd1fe158a1b5f23
+  "repository": "https://github.com/2025ae167852-lgtm/foodprint.git",
+  "private": true
 }
