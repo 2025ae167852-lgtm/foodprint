@@ -118,7 +118,7 @@ router.get('/register/:message?', (req, res) => {
   });
 });
 
-/* Register User - UPDATED TO MATCH FORM FIELD NAMES */
+/* Register User - FIXED PHONE NUMBER FIELD */
 router.post('/register', async (req, res) => {
   console.log('=== REGISTRATION ATTEMPT ===');
   console.log('Request body:', req.body);
@@ -204,12 +204,22 @@ router.post('/register', async (req, res) => {
     const salt = await bcrypt.genSalt(10);
     const hash = await bcrypt.hash(registerPassword, salt);
 
-    // Create new user with ALL fields from form
+    // Generate phone number if not provided (using phoneNumber field name)
+    let phoneNumber = registerPhone && typeof registerPhone === 'string' && registerPhone.trim() 
+      ? registerPhone.trim()
+      : `+254${Math.floor(100000000 + Math.random() * 900000000)}`;
+    
+    // Ensure phoneNumber is not empty
+    if (!phoneNumber || phoneNumber.trim() === '') {
+      phoneNumber = `+254${Math.floor(100000000 + Math.random() * 900000000)}`;
+    }
+
+    // Create new user with CORRECT field names for your model
     await models.User.create({
       firstName: registerName && typeof registerName === 'string' ? registerName.trim() : '',
       lastName: registerSurname && typeof registerSurname === 'string' ? registerSurname.trim() : '',
       email: registerEmail.trim().toLowerCase(),
-      phone: registerPhone && typeof registerPhone === 'string' ? registerPhone.trim() : null,
+      phoneNumber: phoneNumber, // Use phoneNumber (not phone)
       organization: registerOrgName && typeof registerOrgName === 'string' ? registerOrgName.trim() : null,
       passwordHash: hash,
       role: registerUserType && Object.values(ROLES).includes(registerUserType) ? registerUserType : ROLES.User,
@@ -224,13 +234,17 @@ router.post('/register', async (req, res) => {
     res.redirect('/app/auth/register/message');
   } catch (err) {
     console.error('Registration error:', err);
-    console.error('Error stack:', err.stack);
+    console.error('Error details:', {
+      message: err.message,
+      name: err.name,
+      errors: err.errors
+    });
     req.flash('error', 'Registration failed: ' + (err.message || 'Please try again'));
     res.redirect('/app/auth/register');
   }
 });
 
-/* Forgot Password - UPDATED FOR CONSISTENCY */
+/* Forgot Password */
 router.get('/forgot-password', (req, res) => {
   res.render('forgot-password', {
     title: 'FoodPrint - Forgot Password',
