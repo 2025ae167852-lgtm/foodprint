@@ -48,16 +48,16 @@ router.get('/login', (req, res) => {
 router.post('/login', async (req, res) => {
   try {
     // Validate request body
-    const validation = validateRequestBody(req, ['email', 'password']);
+    const validation = validateRequestBody(req, ['registerEmail', 'registerPassword']);
     if (!validation.valid) {
       req.flash('error', validation.error);
       return res.redirect('/app/auth/login');
     }
 
-    const { email, password } = req.body;
+    const { registerEmail, registerPassword } = req.body;
 
     // Find user
-    const user = await models.User.findOne({ where: { email } });
+    const user = await models.User.findOne({ where: { email: registerEmail } });
     if (!user) {
       req.flash('error', 'Invalid email or password');
       return res.redirect('/app/auth/login');
@@ -70,7 +70,7 @@ router.post('/login', async (req, res) => {
     }
 
     // Verify password
-    const isMatch = await bcrypt.compare(password, user.passwordHash);
+    const isMatch = await bcrypt.compare(registerPassword, user.passwordHash);
     if (!isMatch) {
       req.flash('error', 'Invalid email or password');
       return res.redirect('/app/auth/login');
@@ -118,8 +118,11 @@ router.get('/register/:message?', (req, res) => {
   });
 });
 
-/* Register User (FIXED - with proper validation) */
+/* Register User - UPDATED TO MATCH FORM FIELD NAMES */
 router.post('/register', async (req, res) => {
+  console.log('=== REGISTRATION ATTEMPT ===');
+  console.log('Request body:', req.body);
+  
   try {
     // Validate request body exists
     if (!req.body || typeof req.body !== 'object') {
@@ -127,91 +130,107 @@ router.post('/register', async (req, res) => {
       return res.redirect('/app/auth/register');
     }
 
+    // Extract fields using the EXACT names from your form
     const {
-      name,
-      surname,
-      email,
-      confirmEmail,
-      password,
-      confirmPassword,
-      phone,
-      userType
+      registerName,
+      registerSurname,
+      registerEmail,
+      registerConfirmEmail,
+      registerPassword,
+      registerConfirmPassword,
+      registerUserType,
+      registerOrgName,
+      registerPhone
     } = req.body || {};
 
+    console.log('Extracted fields:', {
+      registerName,
+      registerSurname,
+      registerEmail,
+      registerConfirmEmail,
+      registerUserType,
+      registerOrgName,
+      registerPhone
+    });
+
     // Validate required fields
-    if (!email || !confirmEmail) {
+    if (!registerEmail || !registerConfirmEmail) {
+      console.log('Missing email fields');
       req.flash('error', 'Email and confirmation are required.');
       return res.redirect('/app/auth/register');
     }
     
-    if (!password || !confirmPassword) {
+    if (!registerPassword || !registerConfirmPassword) {
+      console.log('Missing password fields');
       req.flash('error', 'Password and confirmation are required.');
       return res.redirect('/app/auth/register');
     }
 
     // Validate email format
-    if (typeof email !== 'string' || email.length < 3 || !email.includes('@')) {
+    if (typeof registerEmail !== 'string' || registerEmail.length < 3 || !registerEmail.includes('@')) {
       req.flash('error', 'Please enter a valid email address.');
       return res.redirect('/app/auth/register');
     }
 
     // Check email match
-    if (email !== confirmEmail) {
+    if (registerEmail !== registerConfirmEmail) {
+      console.log('Emails do not match:', registerEmail, 'vs', registerConfirmEmail);
       req.flash('error', 'Email addresses do not match.');
       return res.redirect('/app/auth/register');
     }
 
     // Check password match
-    if (password !== confirmPassword) {
+    if (registerPassword !== registerConfirmPassword) {
+      console.log('Passwords do not match');
       req.flash('error', 'Passwords do not match.');
       return res.redirect('/app/auth/register');
     }
 
-    // Validate password length (FIXED LINE 101 issue)
-    if (typeof password !== 'string' || password.length < 6) {
+    // Validate password length
+    if (typeof registerPassword !== 'string' || registerPassword.length < 6) {
       req.flash('error', 'Password must be at least 6 characters long.');
       return res.redirect('/app/auth/register');
     }
 
     // Check if user already exists
-    const existingUser = await models.User.findOne({ where: { email } });
+    const existingUser = await models.User.findOne({ where: { email: registerEmail.trim() } });
     if (existingUser) {
+      console.log('Email already exists:', registerEmail);
       req.flash('error', 'Email already registered.');
       return res.redirect('/app/auth/register');
     }
 
     // Hash password
     const salt = await bcrypt.genSalt(10);
-    const hash = await bcrypt.hash(password, salt);
+    const hash = await bcrypt.hash(registerPassword, salt);
 
-    // Generate phone if not provided
-    const phoneNumber = phone && typeof phone === 'string' && phone.trim() 
-      ? phone.trim()
-      : `+254${Math.floor(100000000 + Math.random() * 900000000)}`;
-
-    // Create new user
+    // Create new user with ALL fields from form
     await models.User.create({
-      firstName: name && typeof name === 'string' ? name.trim() : '',
-      lastName: surname && typeof surname === 'string' ? surname.trim() : '',
-      email: email.trim().toLowerCase(),
-      phoneNumber,
+      firstName: registerName && typeof registerName === 'string' ? registerName.trim() : '',
+      lastName: registerSurname && typeof registerSurname === 'string' ? registerSurname.trim() : '',
+      email: registerEmail.trim().toLowerCase(),
+      phone: registerPhone && typeof registerPhone === 'string' ? registerPhone.trim() : null,
+      organization: registerOrgName && typeof registerOrgName === 'string' ? registerOrgName.trim() : null,
       passwordHash: hash,
-      role: userType && Object.values(ROLES).includes(userType) ? userType : ROLES.User,
+      role: registerUserType && Object.values(ROLES).includes(registerUserType) ? registerUserType : ROLES.User,
       registrationChannel: 'web',
+      isActive: true,
       createdAt: new Date(),
       updatedAt: new Date()
     });
 
+    console.log('✅ User created successfully');
     req.flash('success', 'Registration successful! You can now login.');
     res.redirect('/app/auth/register/message');
   } catch (err) {
     console.error('Registration error:', err);
+    console.error('Error stack:', err.stack);
     req.flash('error', 'Registration failed: ' + (err.message || 'Please try again'));
     res.redirect('/app/auth/register');
   }
 });
 
-/* Forgot Password */
+/* Forgot Password - UPDATED FOR CONSISTENCY */
 router.get('/forgot-password', (req, res) => {
   res.render('forgot-password', {
     title: 'FoodPrint - Forgot Password',
@@ -222,15 +241,17 @@ router.get('/forgot-password', (req, res) => {
 
 router.post('/forgot-password', async (req, res) => {
   try {
-    const { email } = req.body || {};
+    // Use the correct field name from your form
+    const emailField = req.body.registerEmail || req.body.email;
+    const email = emailField ? emailField.trim() : '';
 
     // Always show success message for security (don't reveal if email exists)
-    if (!email || typeof email !== 'string') {
+    if (!email) {
       req.flash('success', 'If an account exists, a reset link has been sent.');
       return res.redirect('/app/auth/login');
     }
 
-    const user = await models.User.findOne({ where: { email: email.trim() } });
+    const user = await models.User.findOne({ where: { email } });
 
     if (user) {
       const resetToken = crypto.randomBytes(32).toString('hex');
@@ -242,7 +263,7 @@ router.post('/forgot-password', async (req, res) => {
           passwordResetExpires: resetExpires,
           updatedAt: new Date()
         },
-        { where: { email: email.trim() } }
+        { where: { email } }
       );
 
       // TODO: Send email/SMS here using configured provider
