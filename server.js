@@ -42,6 +42,14 @@ const app = express();
 app.set('views', path.join(__dirname, 'views'));
 app.set('view engine', 'ejs');
 
+// Check if views directory exists
+const viewsDir = path.join(__dirname, 'views');
+if (!fs.existsSync(viewsDir)) {
+  console.error('❌ ERROR: Views directory does not exist:', viewsDir);
+  console.log('📂 Current directory:', __dirname);
+  console.log('📂 Directory contents:', fs.readdirSync(__dirname));
+}
+
 const staticDirs = ['foodprint-static', 'public', 'src', 'build', 'docs', 'dist'];
 staticDirs.forEach(dir => {
   const full = path.join(__dirname, dir);
@@ -296,11 +304,200 @@ function tryRequireRoute(modulePath) {
 }
 
 // -------------------------
-// EXPLICIT ROUTE MOUNTS - CRITICAL FIX
+// HEALTH CHECK ENDPOINT - KEEP THIS
 // -------------------------
-console.log('🔄 Loading models...');
+app.get('/health', (req, res) => {
+  res.json({ 
+    status: 'OK', 
+    message: '🚀 FoodPrint server is live and healthy!',
+    timestamp: new Date().toISOString()
+  });
+});
 
-// Mount critical routes first
+// -------------------------
+// MAIN LANDING PAGE - MUST COME BEFORE OTHER ROUTES
+// -------------------------
+app.get('/', (req, res) => {
+  console.log('📢 Main landing page accessed');
+  
+  const user = req.user || null;
+  const admin_status = user && (user.role === 'Admin' || user.role === 'Superuser');
+  
+  // Check if views directory exists
+  const indexPath = path.join(__dirname, 'views', 'index.ejs');
+  
+  if (!fs.existsSync(viewsDir)) {
+    console.error('❌ Views directory missing! Creating it...');
+    fs.mkdirSync(viewsDir, { recursive: true });
+  }
+  
+  // Check if index.ejs exists
+  if (fs.existsSync(indexPath)) {
+    console.log('✅ Found index.ejs, rendering...');
+    console.log('📁 Views folder contents:', fs.readdirSync(viewsDir));
+    
+    try {
+      return res.render('index', {
+        user,
+        admin_status: !!admin_status,
+        page_name: 'home',
+        title: 'FoodPrint - Farm to Fork Supply Chain',
+        message: 'Welcome to FoodPrint'
+      });
+    } catch (renderError) {
+      console.error('❌ Error rendering index.ejs:', renderError.message);
+      return res.send(`
+        <!DOCTYPE html>
+        <html>
+        <head><title>Render Error</title></head>
+        <body>
+          <h1>Template Error</h1>
+          <p>Error rendering index.ejs: ${renderError.message}</p>
+          <p>Check the EJS syntax in your template.</p>
+        </body>
+        </html>
+      `);
+    }
+  }
+  
+  // Create a basic index.ejs file if it doesn't exist
+  console.log('⚠️ index.ejs not found, creating basic template...');
+  const basicTemplate = `<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><%= title || 'FoodPrint' %></title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif; }
+        .hero { 
+            background: linear-gradient(135deg, #28a745 0%, #20c997 100%); 
+            color: white; 
+            padding: 80px 20px; 
+            border-radius: 10px; 
+            margin-top: 20px;
+        }
+        .feature-icon { font-size: 3rem; margin-bottom: 1rem; }
+    </style>
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-success">
+        <div class="container">
+            <a class="navbar-brand" href="/">
+                🌱 <strong>FoodPrint</strong>
+            </a>
+            <div class="navbar-nav ms-auto">
+                <% if (user) { %>
+                    <a class="nav-link" href="/app/dashboards">Dashboard</a>
+                    <a class="nav-link" href="/app/auth/logout">Logout</a>
+                <% } else { %>
+                    <a class="nav-link" href="/app/auth/login">Login</a>
+                    <a class="nav-link" href="/app/auth/register">Register</a>
+                <% } %>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container my-5">
+        <div class="hero text-center">
+            <h1 class="display-4 mb-4">🌱 Welcome to FoodPrint</h1>
+            <p class="lead mb-4">Blockchain-enabled farm-to-fork supply chain tracking platform</p>
+            <div class="mt-4">
+                <% if (user) { %>
+                    <a href="/app/dashboards" class="btn btn-light btn-lg mx-2">Go to Dashboard</a>
+                <% } else { %>
+                    <a href="/app/auth/login" class="btn btn-light btn-lg mx-2">Login</a>
+                    <a href="/app/auth/register" class="btn btn-outline-light btn-lg mx-2">Register</a>
+                <% } %>
+            </div>
+        </div>
+
+        <div class="row mt-5">
+            <div class="col-md-4 text-center mb-4">
+                <div class="feature-icon">🌾</div>
+                <h3>Farm Tracking</h3>
+                <p>Track produce from farm to fork with blockchain transparency</p>
+            </div>
+            <div class="col-md-4 text-center mb-4">
+                <div class="feature-icon">📱</div>
+                <h3>QR Code Integration</h3>
+                <p>Scan QR codes for instant product history and verification</p>
+            </div>
+            <div class="col-md-4 text-center mb-4">
+                <div class="feature-icon">🔗</div>
+                <h3>Blockchain Security</h3>
+                <p>Immutable records ensure supply chain integrity</p>
+            </div>
+        </div>
+    </div>
+
+    <footer class="bg-light text-center py-4 mt-5">
+        <div class="container">
+            <p class="mb-0">FoodPrint &copy; <%= new Date().getFullYear() %> | Farm to Fork Supply Chain Platform</p>
+            <p class="text-muted mt-2">
+                <a href="/health" class="text-muted">Server Health</a> | 
+                <a href="/app/auth/login" class="text-muted">Admin Login</a>
+            </p>
+        </div>
+    </footer>
+</body>
+</html>`;
+  
+  try {
+    fs.writeFileSync(indexPath, basicTemplate);
+    console.log('✅ Created basic index.ejs template');
+    
+    // Now render it
+    return res.render('index', {
+      user,
+      admin_status: !!admin_status,
+      page_name: 'home',
+      title: 'FoodPrint - Farm to Fork Supply Chain',
+      message: 'Welcome to FoodPrint'
+    });
+  } catch (writeError) {
+    console.error('❌ Failed to create index.ejs:', writeError.message);
+    
+    // Fallback HTML
+    return res.send(`
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>FoodPrint - Farm to Fork</title>
+        <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+        <style>
+          body { padding: 20px; background: #f8f9fa; }
+          .hero { background: linear-gradient(135deg, #28a745 0%, #20c997 100%); color: white; padding: 60px 20px; border-radius: 10px; }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <div class="hero text-center">
+            <h1>🌱 FoodPrint</h1>
+            <p class="lead">Blockchain-enabled farm-to-fork supply chain platform</p>
+            <div class="mt-4">
+              <a href="/app/auth/login" class="btn btn-light btn-lg mx-2">Login</a>
+              <a href="/app/auth/register" class="btn btn-outline-light btn-lg mx-2">Register</a>
+            </div>
+          </div>
+          <div class="text-center mt-4">
+            <p>Server is running. <a href="/app/auth/login">Go to Login</a></p>
+            <p class="text-muted"><small>Health check: <a href="/health">/health</a></small></p>
+          </div>
+        </div>
+      </body>
+      </html>
+    `);
+  }
+});
+
+// -------------------------
+// EXPLICIT ROUTE MOUNTS - AFTER MAIN LANDING PAGE
+// -------------------------
+console.log('🔄 Loading routes...');
+
+// Mount critical routes
 const essentialRoutes = [
   { file: './routes/auth', path: '/app/auth', required: true },
   { file: './routes/dashboards', path: '/app/dashboards', required: true },
@@ -315,7 +512,7 @@ essentialRoutes.forEach(m => {
   if (mod) {
     try {
       app.use(m.path, mod);
-      console.log(`Mounted route ${m.file} -> ${m.path}`);
+      console.log(`✅ Mounted route ${m.file} -> ${m.path}`);
     } catch (e) {
       console.warn(`Skipping mount ${m.file} due to runtime error:`, e.message);
     }
@@ -323,8 +520,6 @@ essentialRoutes.forEach(m => {
     console.warn(`⚠️ Required route module missing: ${m.file}`);
   }
 });
-
-console.log('✅ Models loaded');
 
 // Mount additional routes
 const additionalRoutes = [
@@ -342,96 +537,37 @@ additionalRoutes.forEach(m => {
   if (mod) {
     try {
       app.use(m.path, mod);
-      console.log(`Mounted route ${m.file} -> ${m.path}`);
+      console.log(`✅ Mounted route ${m.file} -> ${m.path}`);
     } catch (e) {
       console.warn(`Skipping mount ${m.file} due to runtime error:`, e.message);
     }
   }
 });
 
-// Try to mount test route if exists
+// Try to mount test route if exists (BUT NOT AT ROOT)
 const testRoute = tryRequireRoute('./routes/test');
 if (testRoute) {
-  app.use('/', testRoute);
-  console.log('Mounted route ./routes/test -> /');
+  app.use('/test', testRoute); // Changed from '/' to '/test'
+  console.log('✅ Mounted route ./routes/test -> /test');
 }
 
-// Try to mount blockchain route if exists
+// Try to mount blockchain route if exists (BUT NOT AT ROOT)
 const blockchainRoute = tryRequireRoute('./routes/blockchain');
 if (blockchainRoute) {
-  app.use('/', blockchainRoute);
-  console.log('Mounted route ./routes/blockchain -> /');
+  app.use('/blockchain', blockchainRoute); // Changed from '/' to '/blockchain'
+  console.log('✅ Mounted route ./routes/blockchain -> /blockchain');
 } else {
   console.warn('⚠️ Blockchain route not found or failed to load');
 }
 
-// -------------------------
-// HEALTH CHECK ENDPOINT - KEEP THIS
-// -------------------------
-app.get('/health', (req, res) => {
-  res.json({ 
-    status: 'OK', 
-    message: '🚀 FoodPrint server is live and healthy!',
-    timestamp: new Date().toISOString()
-  });
-});
-
-// -------------------------
-// MAIN LANDING PAGE - CRITICAL FIX
-// -------------------------
-app.get('/', (req, res) => {
-  const user = req.user || null;
-  const admin_status = user && (user.role === 'Admin' || user.role === 'Superuser');
-  
-  // Check if index.ejs exists
-  const indexViewPath = path.join(__dirname, 'views', 'index.ejs');
-  
-  if (fs.existsSync(indexViewPath)) {
-    return res.render('index', {
-      user,
-      admin_status: !!admin_status,
-      page_name: 'home',
-      title: 'FoodPrint - Farm to Fork Supply Chain',
-      message: 'Welcome to FoodPrint'
-    });
-  }
-  
-  // Fallback if index.ejs doesn't exist
-  res.send(`
-    <!DOCTYPE html>
-    <html>
-    <head>
-      <title>FoodPrint - Farm to Fork</title>
-      <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
-      <style>
-        body { padding: 20px; background: #f8f9fa; }
-        .hero { background: linear-gradient(135deg, #28a745 0%, #20c997 100%); color: white; padding: 60px 20px; border-radius: 10px; }
-      </style>
-    </head>
-    <body>
-      <div class="container">
-        <div class="hero text-center">
-          <h1>🌱 FoodPrint</h1>
-          <p class="lead">Blockchain-enabled farm-to-fork supply chain platform</p>
-          <div class="mt-4">
-            <a href="/app/auth/login" class="btn btn-light btn-lg mx-2">Login</a>
-            <a href="/app/auth/register" class="btn btn-outline-light btn-lg mx-2">Register</a>
-          </div>
-        </div>
-        <div class="text-center mt-4">
-          <p>Server is running. <a href="/app/auth/login">Go to Login</a></p>
-        </div>
-      </div>
-    </body>
-    </html>
-  `);
-});
+console.log('✅ All routes loaded');
 
 // -------------------------
 // 404 + error handler
 // -------------------------
 app.use((req, res, next) => {
   const error = createError(404, `Route not found: ${req.originalUrl}`);
+  console.log(`❌ 404: ${req.originalUrl}`);
   next(error);
 });
 
@@ -478,6 +614,8 @@ app.use((err, req, res, next) => {
 const PORT = process.env.PORT || 8080;
 app.listen(PORT, () => {
   console.log(`🚀 FoodPrint Server is running on port ${PORT} (env=${process.env.NODE_ENV || 'production'})`);
+  console.log(`📁 Views directory: ${viewsDir}`);
+  console.log(`📄 Looking for index.ejs at: ${path.join(viewsDir, 'index.ejs')}`);
   if (process.env.NODE_ENV !== CUSTOM_ENUMS.PRODUCTION) {
     console.log(`🌐 Access it at http://localhost:${PORT}`);
   }
