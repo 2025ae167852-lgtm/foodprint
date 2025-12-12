@@ -1,0 +1,15 @@
+{
+  "steps": [
+    {
+      "name": "install",
+      "command": "yarn install"
+    },
+    {
+      "name": "build",
+      "command": "npm run build"
+    }
+  ],
+  "deploy": {
+    "command": "node server.js"
+  }
+}
