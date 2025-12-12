@@ -44,35 +44,60 @@ router.get('/login', (req, res) => {
   });
 });
 
-/* Process Login */
+/* Process Login - UPDATED FOR loginUsername FIELD */
 router.post('/login', async (req, res) => {
+  console.log('=== LOGIN ATTEMPT ===');
+  console.log('Request body:', req.body);
+  
   try {
-    // Validate request body
-    const validation = validateRequestBody(req, ['registerEmail', 'registerPassword']);
-    if (!validation.valid) {
-      req.flash('error', validation.error);
+    // Check for username/email in multiple possible field names
+    let username = req.body.loginUsername || req.body.registerEmail || req.body.email;
+    let password = req.body.loginPassword || req.body.registerPassword || req.body.password;
+    
+    console.log('Extracted credentials:', { username, password });
+    
+    // Validate required fields
+    if (!username) {
+      console.log('No username found in request');
+      req.flash('error', 'Username/Email is required.');
+      return res.redirect('/app/auth/login');
+    }
+    
+    if (!password) {
+      console.log('No password found in request');
+      req.flash('error', 'Password is required.');
       return res.redirect('/app/auth/login');
     }
 
-    const { registerEmail, registerPassword } = req.body;
-
-    // Find user
-    const user = await models.User.findOne({ where: { email: registerEmail } });
+    // Find user by email (since registration uses email, not username)
+    // Try to find user by email first, then by other fields if needed
+    const user = await models.User.findOne({ 
+      where: { 
+        [Op.or]: [
+          { email: username.trim() },
+          { firstName: username.trim() }
+        ]
+      } 
+    });
+    
     if (!user) {
-      req.flash('error', 'Invalid email or password');
+      console.log('User not found for:', username);
+      req.flash('error', 'Invalid username/email or password');
       return res.redirect('/app/auth/login');
     }
 
     // Check if password is set
     if (!user.passwordHash) {
+      console.log('User has no password hash:', user.id);
       req.flash('error', 'Password not set. Please use forgot password or contact admin.');
       return res.redirect('/app/auth/login');
     }
 
     // Verify password
-    const isMatch = await bcrypt.compare(registerPassword, user.passwordHash);
+    const isMatch = await bcrypt.compare(password, user.passwordHash);
     if (!isMatch) {
-      req.flash('error', 'Invalid email or password');
+      console.log('Password mismatch for user:', user.id);
+      req.flash('error', 'Invalid username/email or password');
       return res.redirect('/app/auth/login');
     }
 
@@ -83,6 +108,7 @@ router.post('/login', async (req, res) => {
         req.flash('error', 'Login failed');
         return res.redirect('/app/auth/login');
       }
+      console.log('✅ Login successful for user:', user.email);
       req.flash('success', 'Login successful!');
       return res.redirect('/');
     });
@@ -256,7 +282,7 @@ router.get('/forgot-password', (req, res) => {
 router.post('/forgot-password', async (req, res) => {
   try {
     // Use the correct field name from your form
-    const emailField = req.body.registerEmail || req.body.email;
+    const emailField = req.body.loginUsername || req.body.registerEmail || req.body.email;
     const email = emailField ? emailField.trim() : '';
 
     // Always show success message for security (don't reveal if email exists)
