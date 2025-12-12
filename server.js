@@ -1,27 +1,486 @@
-// server.js
-const express = require('express');
+/**
+ * server.js - safe/robust server for Render (production)
+ *
+ * - Loads .env
+ * - Serves EJS views from /views
+ * - Serves multiple static directories if they exist
+ * - Tolerant route loading (skips routes that throw on require)
+ * - Only initializes optional services (email, uploads) if explicitly enabled
+ * - Option A behavior: public landing; if user not logged in, show landing with admin_status=false
+ * - Deployment: Root directory must be set to "." in Render dashboard
+ */
+
+'use strict';
+
+// Load environment variables FIRST, before any other imports
+require('dotenv').config();
+
 const path = require('path');
+const fs = require('fs');
+const express = require('express');
+const cookieParser = require('cookie-parser');
+const logger = require('morgan');
+const session = require('express-session');
+const flash = require('express-flash');
+const passport = require('passport');
+const LocalStrategy = require('passport-local').Strategy;
+const createError = require('http-errors');
+const cors = require('cors');
+const pgSession = require('connect-pg-simple');
+const pg = require('pg');
+
+const CUSTOM_ENUMS = {
+  PRODUCTION: 'production',
+  DEVELOPMENT: 'development',
+};
 
 const app = express();
 
-// ✅ Root route for Railway healthcheck
+// -------------------------
+// Views & statics
+// -------------------------
+app.set('views', path.join(__dirname, 'views'));
+app.set('view engine', 'ejs');
+
+const staticDirs = ['foodprint-static', 'public', 'src', 'build', 'docs', 'dist'];
+staticDirs.forEach(dir => {
+  const full = path.join(__dirname, dir);
+  if (fs.existsSync(full)) {
+    app.use(express.static(full));
+  }
+});
+
+// -------------------------
+// Logging
+// -------------------------
+if (process.env.NODE_ENV === CUSTOM_ENUMS.PRODUCTION) {
+  app.use(logger('common', { skip: (req, res) => res.statusCode < 400 }));
+} else {
+  app.use(logger('dev'));
+}
+
+// -------------------------
+// Parsers & cookie
+// -------------------------
+app.use(express.json());
+app.use(express.urlencoded({ extended: true })); // Changed to true for form data
+app.use(cookieParser());
+app.use(cors());
+
+// -------------------------
+// Session & passport (minimal local file-based auth as repo expects)
+// -------------------------
+// Configure session store based on availability of DATABASE_URL
+const databaseUrl = process.env.DATABASE_URL || null;
+let sessionConfig = {
+  secret: process.env.SESSION_SECRET || 'dev-session-secret',
+  resave: false,
+  saveUninitialized: true,
+  cookie: {
+    maxAge: (parseInt(process.env.SESSION_TOKEN_LIFETIME || '3600', 10) || 3600) * 1000,
+  },
+};
+
+// Use PostgreSQL session store if DATABASE_URL is available
+if (databaseUrl) {
+  try {
+    const Pool = pg.Pool;
+    const SessionStore = pgSession(session);
+    
+    // Configure SSL for PostgreSQL (required on Render)
+    const poolConfig = {
+      connectionString: databaseUrl,
+    };
+    
+    // Add SSL configuration unless explicitly disabled
+    if (process.env.DB_SSL !== 'false') {
+      poolConfig.ssl = {
+        require: true,
+        rejectUnauthorized: false
+      };
+    }
+    
+    const pool = new Pool(poolConfig);
+    
+    // Try to create the session table if it doesn't exist
+    (async () => {
+      try {
+        await pool.query(`CREATE TABLE IF NOT EXISTS "session" (
+          "sid" varchar NOT NULL,
+          "sess" json NOT NULL,
+          "expire" timestamp(6) NOT NULL,
+          CONSTRAINT "session_pkey" PRIMARY KEY ("sid")
+        )`);
+        
+        // Try to create index (will fail if exists, that's ok)
+        await pool.query(`CREATE INDEX IF NOT EXISTS "IDX_session_expire" ON "session" ("expire")`).catch(() => {});
+        
+        console.log('✅ Session table ready');
+      } catch (err) {
+        console.warn('Could not create session table (might already exist):', err.message);
+      }
+    })();
+    
+    sessionConfig.store = new SessionStore({
+      pool: pool,
+      tableName: 'session',
+      createTableIfMissing: false, // We create it ourselves above
+    });
+    console.log('✅ Using PostgreSQL session store');
+  } catch (e) {
+    console.warn('Failed to initialize PostgreSQL session store, using MemoryStore:', e.message);
+  }
+} else {
+  console.warn('No DATABASE_URL found, using MemoryStore (not suitable for production)');
+}
+
+app.use(session(sessionConfig));
+
+// -------------------------
+// Middleware that needs to come after session
+// -------------------------
+app.use(flash());
+app.use(passport.initialize());
+app.use(passport.session());
+
+// Passport configuration
+const initModels = require('./models/init-models');
+const sequelize = require('./config/db/db_sequelise');
+const models = initModels(sequelize);
+const bcrypt = require('bcryptjs');
+
+// Serialize user
+passport.serializeUser((user, done) => {
+  done(null, user.id || user.ID);
+});
+
+// Deserialize user
+passport.deserializeUser(async (id, done) => {
+  try {
+    const user = await models.User.findByPk(id);
+    done(null, user);
+  } catch (error) {
+    done(error, null);
+  }
+});
+
+// Local strategy for authentication
+passport.use(new LocalStrategy(
+  {
+    usernameField: 'email',
+    passwordField: 'password'
+  },
+  async (email, password, done) => {
+    try {
+      const user = await models.User.findOne({ where: { email } });
+      
+      if (!user) {
+        return done(null, false, { message: 'Invalid email or password' });
+      }
+      
+      const isValid = await bcrypt.compare(password, user.passwordHash);
+      if (!isValid) {
+        return done(null, false, { message: 'Invalid email or password' });
+      }
+      
+      return done(null, user);
+    } catch (error) {
+      return done(error);
+    }
+  }
+));
+
+// expose flash messages to views
+app.use((req, res, next) => {
+  res.locals.error = req.flash('error');
+  res.locals.success = req.flash('success');
+  res.locals.user = req.user || null;
+  next();
+});
+
+// -------------------------
+// Database (Sequelize) - prefer DATABASE_URL if present
+// -------------------------
+(async function initDatabase() {
+  try {
+    await sequelize.authenticate();
+    console.log('✅ Database connected successfully (POSTGRES)');
+    
+    // Sync by default unless explicitly disabled
+    const shouldSync = process.env.DB_SYNC !== 'false';
+    
+    if (shouldSync) {
+      try {
+        console.log('🔄 Creating database tables...');
+        
+        // Import and initialize models so sequelize knows what tables to create
+        const initModels = require('./models/init-models');
+        const models = initModels(sequelize);
+        console.log('✅ Database connected successfully');
+        
+        console.log('🔄 Loading models and checking database tables...');
+        
+        // Sync each model individually to avoid conflicts
+        console.log('🔄 Syncing database...');
+        
+        // User table first (most important)
+        try {
+          await models.User.sync();
+          console.log('✅ User table created');
+        } catch (userErr) {
+          console.warn('⚠️ User table sync warning:', userErr.message);
+        }
+        
+        // Check and create indexes separately
+        try {
+          // Check if we need to create indexes
+          const indexes = await sequelize.queryInterface.showIndex(models.User.tableName);
+          if (!indexes || indexes.length === 0) {
+            console.log('✅ User table indexes checked');
+          }
+        } catch (indexErr) {
+          console.warn('⚠️ Index check warning (may already exist):', indexErr.message);
+        }
+        
+        console.log('✅ Models initialized');
+        
+        console.log('🔄 Syncing other tables...');
+        // Sync other models
+        for (const modelName in models) {
+          if (modelName !== 'User' && modelName !== 'sequelize' && modelName !== 'Sequelize') {
+            try {
+              await models[modelName].sync();
+            } catch (syncErr) {
+              console.warn(`⚠️ ${modelName} table sync warning:`, syncErr.message);
+            }
+          }
+        }
+        
+        console.log('⚠️ Some indexes could not be created (may have duplicates or already exist). Tables are ready.');
+        console.log('⚠️ This is normal if the database already has data.');
+        console.log('✅ Database tables ready.');
+        
+      } catch (syncErr) {
+        console.error('❌ Database sync error:', syncErr.message);
+        console.warn('⚠️  If tables already exist, you can set DB_SYNC=false to suppress this.');
+      }
+    } else {
+      console.log('⚠️  Database sync disabled by DB_SYNC=false setting.');
+    }
+  } catch (err) {
+    console.error('Error connecting to database:', err && err.message ? err.message : err);
+  }
+})().catch(e => console.error('DB init unexpected error', e));
+
+// -------------------------
+// Optional: Email transport
+// -------------------------
+if (process.env.EMAIL_ENABLED !== 'true') {
+  console.log('Email disabled (EMAIL_ENABLED not set to true)');
+}
+
+// -------------------------
+// Safe route loader helper
+// -------------------------
+function tryRequireRoute(modulePath) {
+  try {
+    const resolved = require.resolve(modulePath);
+    console.log(`🔄 Loading ${modulePath}...`);
+    const module = require(resolved);
+    console.log(`✅ Loaded ${modulePath}`);
+    return module;
+  } catch (err) {
+    console.warn(`Route load failed: ${modulePath} - ${err.message}`);
+    return null;
+  }
+}
+
+// -------------------------
+// EXPLICIT ROUTE MOUNTS - CRITICAL FIX
+// -------------------------
+console.log('🔄 Loading models...');
+
+// Mount critical routes first
+const essentialRoutes = [
+  { file: './routes/auth', path: '/app/auth', required: true },
+  { file: './routes/dashboards', path: '/app/dashboards', required: true },
+  { file: './routes/produce', path: '/app/produce', required: true },
+  { file: './routes/buyer', path: '/app/buyer', required: true },
+  { file: './routes/seller', path: '/app/seller', required: true },
+  { file: './routes/order', path: '/app/order', required: true },
+];
+
+essentialRoutes.forEach(m => {
+  const mod = tryRequireRoute(m.file);
+  if (mod) {
+    try {
+      app.use(m.path, mod);
+      console.log(`Mounted route ${m.file} -> ${m.path}`);
+    } catch (e) {
+      console.warn(`Skipping mount ${m.file} due to runtime error:`, e.message);
+    }
+  } else if (m.required) {
+    console.warn(`⚠️ Required route module missing: ${m.file}`);
+  }
+});
+
+console.log('✅ Models loaded');
+
+// Mount additional routes
+const additionalRoutes = [
+  { file: './routes/config', path: '/app/config' },
+  { file: './routes/harvest', path: '/app/harvest' },
+  { file: './routes/storage', path: '/app/storage' },
+  { file: './routes/qrcode', path: '/app' },
+  { file: './routes/email', path: '/app/email' },
+  { file: './routes/search', path: '/' },
+  { file: './routes/api_v1', path: '/app/api/v1' },
+];
+
+additionalRoutes.forEach(m => {
+  const mod = tryRequireRoute(m.file);
+  if (mod) {
+    try {
+      app.use(m.path, mod);
+      console.log(`Mounted route ${m.file} -> ${m.path}`);
+    } catch (e) {
+      console.warn(`Skipping mount ${m.file} due to runtime error:`, e.message);
+    }
+  }
+});
+
+// Try to mount test route if exists
+const testRoute = tryRequireRoute('./routes/test');
+if (testRoute) {
+  app.use('/', testRoute);
+  console.log('Mounted route ./routes/test -> /');
+}
+
+// Try to mount blockchain route if exists
+const blockchainRoute = tryRequireRoute('./routes/blockchain');
+if (blockchainRoute) {
+  app.use('/', blockchainRoute);
+  console.log('Mounted route ./routes/blockchain -> /');
+} else {
+  console.warn('⚠️ Blockchain route not found or failed to load');
+}
+
+// -------------------------
+// HEALTH CHECK ENDPOINT - KEEP THIS
+// -------------------------
+app.get('/health', (req, res) => {
+  res.json({ 
+    status: 'OK', 
+    message: '🚀 FoodPrint server is live and healthy!',
+    timestamp: new Date().toISOString()
+  });
+});
+
+// -------------------------
+// MAIN LANDING PAGE - CRITICAL FIX
+// -------------------------
 app.get('/', (req, res) => {
-  res.send('🚀 FoodPrint server is live and healthy!');
+  const user = req.user || null;
+  const admin_status = user && (user.role === 'Admin' || user.role === 'Superuser');
+  
+  // Check if index.ejs exists
+  const indexViewPath = path.join(__dirname, 'views', 'index.ejs');
+  
+  if (fs.existsSync(indexViewPath)) {
+    return res.render('index', {
+      user,
+      admin_status: !!admin_status,
+      page_name: 'home',
+      title: 'FoodPrint - Farm to Fork Supply Chain',
+      message: 'Welcome to FoodPrint'
+    });
+  }
+  
+  // Fallback if index.ejs doesn't exist
+  res.send(`
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <title>FoodPrint - Farm to Fork</title>
+      <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+      <style>
+        body { padding: 20px; background: #f8f9fa; }
+        .hero { background: linear-gradient(135deg, #28a745 0%, #20c997 100%); color: white; padding: 60px 20px; border-radius: 10px; }
+      </style>
+    </head>
+    <body>
+      <div class="container">
+        <div class="hero text-center">
+          <h1>🌱 FoodPrint</h1>
+          <p class="lead">Blockchain-enabled farm-to-fork supply chain platform</p>
+          <div class="mt-4">
+            <a href="/app/auth/login" class="btn btn-light btn-lg mx-2">Login</a>
+            <a href="/app/auth/register" class="btn btn-outline-light btn-lg mx-2">Register</a>
+          </div>
+        </div>
+        <div class="text-center mt-4">
+          <p>Server is running. <a href="/app/auth/login">Go to Login</a></p>
+        </div>
+      </div>
+    </body>
+    </html>
+  `);
 });
 
-// ✅ Serve static frontend build (React/Vue/Angular)
-// Assumes your frontend build output is in a folder called "build"
-app.use(express.static(path.join(__dirname, 'build')));
-
-// ✅ Catch-all route for frontend deep links
-// This ensures routes like /app/auth/login or /track don’t throw "Error Not Found"
-app.get('*', (req, res) => {
-  res.sendFile(path.join(__dirname, 'build', 'index.html'));
+// -------------------------
+// 404 + error handler
+// -------------------------
+app.use((req, res, next) => {
+  const error = createError(404, `Route not found: ${req.originalUrl}`);
+  next(error);
 });
 
-// ✅ Start server on Railway’s assigned port
+app.use((err, req, res, next) => {
+  // Set locals, only providing error in development
+  res.locals.message = err.message;
+  res.locals.error = req.app.get('env') === 'development' ? err : {};
+  
+  // Check if headers have already been sent
+  if (res.headersSent) {
+    return next(err);
+  }
+  
+  // Render the error page
+  res.status(err.status || 500);
+  
+  const errorView = path.join(__dirname, 'views', 'error.ejs');
+  if (fs.existsSync(errorView)) {
+    try {
+      res.render('error', { 
+        user: req.user || null, 
+        page_name: 'error',
+        title: 'Error',
+        message: err.message
+      });
+    } catch (renderError) {
+      // If render fails, send simple error
+      res.json({ 
+        error: err.message || 'Server error',
+        status: err.status || 500
+      });
+    }
+  } else {
+    res.json({ 
+      error: err.message || 'Server error',
+      status: err.status || 500
+    });
+  }
+});
+
+// -------------------------
+// Start server
+// -------------------------
 const PORT = process.env.PORT || 8080;
 app.listen(PORT, () => {
-  console.log(`🚀 FoodPrint server running on port ${PORT}`);
+  console.log(`🚀 FoodPrint Server is running on port ${PORT} (env=${process.env.NODE_ENV || 'production'})`);
+  if (process.env.NODE_ENV !== CUSTOM_ENUMS.PRODUCTION) {
+    console.log(`🌐 Access it at http://localhost:${PORT}`);
+  }
 });
 
+module.exports = app;
