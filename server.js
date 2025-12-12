@@ -48,6 +48,9 @@ if (!fs.existsSync(viewsDir)) {
   console.error('❌ ERROR: Views directory does not exist:', viewsDir);
   console.log('📂 Current directory:', __dirname);
   console.log('📂 Directory contents:', fs.readdirSync(__dirname));
+} else {
+  console.log('✅ Views directory exists:', viewsDir);
+  console.log('📂 Views folder contents:', fs.readdirSync(viewsDir));
 }
 
 const staticDirs = ['foodprint-static', 'public', 'src', 'build', 'docs', 'dist'];
@@ -55,6 +58,7 @@ staticDirs.forEach(dir => {
   const full = path.join(__dirname, dir);
   if (fs.existsSync(full)) {
     app.use(express.static(full));
+    console.log(`✅ Serving static files from: ${dir}`);
   }
 });
 
@@ -318,7 +322,7 @@ app.get('/health', (req, res) => {
 // MAIN LANDING PAGE - MUST COME BEFORE OTHER ROUTES
 // -------------------------
 app.get('/', (req, res) => {
-  console.log('📢 Main landing page accessed');
+  console.log('📢 Main landing page accessed - index.ejs should render');
   
   const user = req.user || null;
   const admin_status = user && (user.role === 'Admin' || user.role === 'Superuser');
@@ -333,8 +337,7 @@ app.get('/', (req, res) => {
   
   // Check if index.ejs exists
   if (fs.existsSync(indexPath)) {
-    console.log('✅ Found index.ejs, rendering...');
-    console.log('📁 Views folder contents:', fs.readdirSync(viewsDir));
+    console.log('✅ Found index.ejs at:', indexPath);
     
     try {
       return res.render('index', {
@@ -521,14 +524,14 @@ essentialRoutes.forEach(m => {
   }
 });
 
-// Mount additional routes
+// Mount additional routes - FIXED: search route changed from '/' to '/search'
 const additionalRoutes = [
   { file: './routes/config', path: '/app/config' },
   { file: './routes/harvest', path: '/app/harvest' },
   { file: './routes/storage', path: '/app/storage' },
   { file: './routes/qrcode', path: '/app' },
   { file: './routes/email', path: '/app/email' },
-  { file: './routes/search', path: '/' },
+  { file: './routes/search', path: '/search' }, // FIXED: Changed from '/' to '/search'
   { file: './routes/api_v1', path: '/app/api/v1' },
 ];
 
@@ -551,13 +554,17 @@ if (testRoute) {
   console.log('✅ Mounted route ./routes/test -> /test');
 }
 
-// Try to mount blockchain route if exists (BUT NOT AT ROOT)
-const blockchainRoute = tryRequireRoute('./routes/blockchain');
-if (blockchainRoute) {
-  app.use('/blockchain', blockchainRoute); // Changed from '/' to '/blockchain'
-  console.log('✅ Mounted route ./routes/blockchain -> /blockchain');
-} else {
-  console.warn('⚠️ Blockchain route not found or failed to load');
+// Try to mount blockchain route if exists (BUT NOT AT ROOT) - Disabled due to errors
+try {
+  const blockchainRoute = tryRequireRoute('./routes/blockchain');
+  if (blockchainRoute) {
+    app.use('/blockchain', blockchainRoute); // Changed from '/' to '/blockchain'
+    console.log('✅ Mounted route ./routes/blockchain -> /blockchain');
+  } else {
+    console.warn('⚠️ Blockchain route not found or failed to load');
+  }
+} catch (blockchainError) {
+  console.warn('⚠️ Blockchain route disabled due to error:', blockchainError.message);
 }
 
 console.log('✅ All routes loaded');
@@ -566,8 +573,8 @@ console.log('✅ All routes loaded');
 // 404 + error handler
 // -------------------------
 app.use((req, res, next) => {
+  console.log(`❌ 404: Route not found - ${req.method} ${req.originalUrl}`);
   const error = createError(404, `Route not found: ${req.originalUrl}`);
-  console.log(`❌ 404: ${req.originalUrl}`);
   next(error);
 });
 
@@ -580,6 +587,9 @@ app.use((err, req, res, next) => {
   if (res.headersSent) {
     return next(err);
   }
+  
+  // Log the error
+  console.error(`❌ Error ${err.status || 500}: ${err.message}`);
   
   // Render the error page
   res.status(err.status || 500);
@@ -597,13 +607,15 @@ app.use((err, req, res, next) => {
       // If render fails, send simple error
       res.json({ 
         error: err.message || 'Server error',
-        status: err.status || 500
+        status: err.status || 500,
+        route: req.originalUrl
       });
     }
   } else {
     res.json({ 
       error: err.message || 'Server error',
-      status: err.status || 500
+      status: err.status || 500,
+      route: req.originalUrl
     });
   }
 });
@@ -613,9 +625,14 @@ app.use((err, req, res, next) => {
 // -------------------------
 const PORT = process.env.PORT || 8080;
 app.listen(PORT, () => {
-  console.log(`🚀 FoodPrint Server is running on port ${PORT} (env=${process.env.NODE_ENV || 'production'})`);
+  console.log(`=========================================`);
+  console.log(`🚀 FoodPrint Server is running on port ${PORT}`);
+  console.log(`📁 Environment: ${process.env.NODE_ENV || 'production'}`);
   console.log(`📁 Views directory: ${viewsDir}`);
-  console.log(`📄 Looking for index.ejs at: ${path.join(viewsDir, 'index.ejs')}`);
+  console.log(`📄 Main route: / (serves index.ejs)`);
+  console.log(`🔧 Health check: /health`);
+  console.log(`🌱 Login: /app/auth/login`);
+  console.log(`=========================================`);
   if (process.env.NODE_ENV !== CUSTOM_ENUMS.PRODUCTION) {
     console.log(`🌐 Access it at http://localhost:${PORT}`);
   }
