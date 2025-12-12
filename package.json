@@ -4,9 +4,9 @@
   "description": "FoodPrint - Blockchain-enabled farm-to-fork supply chain platform",
   "main": "server.js",
   "scripts": {
-    "start": "node server.js",
-    "dev": "nodemon server.js",
-    "build": "echo \"No build step configured\"",
+    "dev": "node server.js",
+  "build": "npm install",
+  "start": "node server.js",
     "postinstall": "echo \"Database migrations can be run manually with: npm run sync-db\"",
     "sync-db": "node scripts/sync-database.js",
     "init-db": "node scripts/init-database.js",
