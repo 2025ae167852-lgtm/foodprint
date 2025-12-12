@@ -1,0 +1,10 @@
+{
+  "build": {
+    "install": "yarn install",
+    "build": "npm run build",
+    "start": "node server.js"
+  },
+  "environment": {
+    "NODE_ENV": "production"
+  }
+}
