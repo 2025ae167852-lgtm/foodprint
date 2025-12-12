@@ -9,6 +9,7 @@ const crypto = require('crypto');
 const initModels = require('../models/init-models');
 const sequelize = require('../config/db/db_sequelise');
 const models = initModels(sequelize);
+const { Op } = require('sequelize');
 
 // Twilio (optional, only if EMAIL_ENABLED or SMS needed)
 const accountSid = process.env.TWILIO_ACCOUNT_SID;
@@ -17,6 +18,21 @@ let tw_client;
 if (accountSid && authToken) {
   tw_client = require('twilio')(accountSid, authToken);
 }
+
+/* Helper function to validate request body */
+const validateRequestBody = (req, requiredFields = []) => {
+  if (!req.body || typeof req.body !== 'object') {
+    return { valid: false, error: 'Request body is required' };
+  }
+  
+  for (const field of requiredFields) {
+    if (!req.body[field]) {
+      return { valid: false, error: `${field} is required` };
+    }
+  }
+  
+  return { valid: true };
+};
 
 /* Render Login page */
 router.get('/login', (req, res) => {
@@ -31,32 +47,36 @@ router.get('/login', (req, res) => {
 /* Process Login */
 router.post('/login', async (req, res) => {
   try {
+    // Validate request body
+    const validation = validateRequestBody(req, ['email', 'password']);
+    if (!validation.valid) {
+      req.flash('error', validation.error);
+      return res.redirect('/app/auth/login');
+    }
+
     const { email, password } = req.body;
 
-    // Basic guards
-    if (!email || !password) {
-      req.flash('error', 'Email and password are required.');
-      return res.redirect('/app/auth/login');
-    }
-
-    let user = await models.User.findOne({ where: { email } });
-
+    // Find user
+    const user = await models.User.findOne({ where: { email } });
     if (!user) {
-      req.flash('error', 'User not found');
+      req.flash('error', 'Invalid email or password');
       return res.redirect('/app/auth/login');
     }
 
+    // Check if password is set
     if (!user.passwordHash) {
-      req.flash('error', 'Password not set. Contact admin.');
+      req.flash('error', 'Password not set. Please use forgot password or contact admin.');
       return res.redirect('/app/auth/login');
     }
 
+    // Verify password
     const isMatch = await bcrypt.compare(password, user.passwordHash);
     if (!isMatch) {
       req.flash('error', 'Invalid email or password');
       return res.redirect('/app/auth/login');
     }
 
+    // Login user
     req.login(user, err => {
       if (err) {
         console.error('Login error:', err);
@@ -68,7 +88,7 @@ router.post('/login', async (req, res) => {
     });
   } catch (err) {
     console.error('Login error:', err);
-    req.flash('error', 'Login failed: ' + err.message);
+    req.flash('error', 'Login failed: ' + (err.message || 'Server error'));
     res.redirect('/app/auth/login');
   }
 });
@@ -76,7 +96,10 @@ router.post('/login', async (req, res) => {
 /* Logout */
 router.get('/logout', (req, res, next) => {
   req.logout(err => {
-    if (err) return next(err);
+    if (err) {
+      console.error('Logout error:', err);
+      return next(err);
+    }
     req.flash('success', 'You are now logged out.');
     res.redirect('/app/auth/login');
   });
@@ -95,9 +118,15 @@ router.get('/register/:message?', (req, res) => {
   });
 });
 
-/* Register User (SAFE) */
+/* Register User (FIXED - with proper validation) */
 router.post('/register', async (req, res) => {
   try {
+    // Validate request body exists
+    if (!req.body || typeof req.body !== 'object') {
+      req.flash('error', 'Registration data is required');
+      return res.redirect('/app/auth/register');
+    }
+
     const {
       name,
       surname,
@@ -107,33 +136,44 @@ router.post('/register', async (req, res) => {
       confirmPassword,
       phone,
       userType
-    } = req.body;
+    } = req.body || {};
 
-    // Guards for required fields
+    // Validate required fields
     if (!email || !confirmEmail) {
       req.flash('error', 'Email and confirmation are required.');
       return res.redirect('/app/auth/register');
     }
+    
     if (!password || !confirmPassword) {
       req.flash('error', 'Password and confirmation are required.');
       return res.redirect('/app/auth/register');
     }
 
-    // Validate email and password
+    // Validate email format
+    if (typeof email !== 'string' || email.length < 3 || !email.includes('@')) {
+      req.flash('error', 'Please enter a valid email address.');
+      return res.redirect('/app/auth/register');
+    }
+
+    // Check email match
     if (email !== confirmEmail) {
       req.flash('error', 'Email addresses do not match.');
       return res.redirect('/app/auth/register');
     }
+
+    // Check password match
     if (password !== confirmPassword) {
       req.flash('error', 'Passwords do not match.');
       return res.redirect('/app/auth/register');
     }
-    if (password.length < 6) {
+
+    // Validate password length (FIXED LINE 101 issue)
+    if (typeof password !== 'string' || password.length < 6) {
       req.flash('error', 'Password must be at least 6 characters long.');
       return res.redirect('/app/auth/register');
     }
 
-    // Existing user check
+    // Check if user already exists
     const existingUser = await models.User.findOne({ where: { email } });
     if (existingUser) {
       req.flash('error', 'Email already registered.');
@@ -144,22 +184,29 @@ router.post('/register', async (req, res) => {
     const salt = await bcrypt.genSalt(10);
     const hash = await bcrypt.hash(password, salt);
 
+    // Generate phone if not provided
+    const phoneNumber = phone && typeof phone === 'string' && phone.trim() 
+      ? phone.trim()
+      : `+254${Math.floor(100000000 + Math.random() * 900000000)}`;
+
     // Create new user
     await models.User.create({
-      firstName: name || '',
-      lastName: surname || '',
-      email,
-      phoneNumber: phone || `+254${Math.floor(Math.random() * 9000000000)}`,
+      firstName: name && typeof name === 'string' ? name.trim() : '',
+      lastName: surname && typeof surname === 'string' ? surname.trim() : '',
+      email: email.trim().toLowerCase(),
+      phoneNumber,
       passwordHash: hash,
-      role: userType || ROLES.User,
+      role: userType && Object.values(ROLES).includes(userType) ? userType : ROLES.User,
       registrationChannel: 'web',
+      createdAt: new Date(),
+      updatedAt: new Date()
     });
 
     req.flash('success', 'Registration successful! You can now login.');
     res.redirect('/app/auth/register/message');
   } catch (err) {
     console.error('Registration error:', err);
-    req.flash('error', 'Registration failed: ' + (err.message || 'Unknown error'));
+    req.flash('error', 'Registration failed: ' + (err.message || 'Please try again'));
     res.redirect('/app/auth/register');
   }
 });
@@ -175,30 +222,32 @@ router.get('/forgot-password', (req, res) => {
 
 router.post('/forgot-password', async (req, res) => {
   try {
-    const { email } = req.body;
+    const { email } = req.body || {};
 
-    if (!email) {
+    // Always show success message for security (don't reveal if email exists)
+    if (!email || typeof email !== 'string') {
       req.flash('success', 'If an account exists, a reset link has been sent.');
       return res.redirect('/app/auth/login');
     }
 
-    const user = await models.User.findOne({ where: { email } });
+    const user = await models.User.findOne({ where: { email: email.trim() } });
 
-    if (!user) {
-      req.flash('success', 'If an account exists, a reset link has been sent.');
-      return res.redirect('/app/auth/login');
+    if (user) {
+      const resetToken = crypto.randomBytes(32).toString('hex');
+      const resetExpires = new Date(Date.now() + 3600000); // 1 hour
+
+      await models.User.update(
+        { 
+          passwordResetToken: resetToken, 
+          passwordResetExpires: resetExpires,
+          updatedAt: new Date()
+        },
+        { where: { email: email.trim() } }
+      );
+
+      // TODO: Send email/SMS here using configured provider
+      console.log(`Reset link: /app/auth/reset-password?token=${resetToken}&email=${encodeURIComponent(email)}`);
     }
-
-    const resetToken = crypto.randomBytes(32).toString('hex');
-    const resetExpires = new Date(Date.now() + 3600000); // 1 hour
-
-    await models.User.update(
-      { passwordResetToken: resetToken, passwordResetExpires: resetExpires },
-      { where: { email } }
-    );
-
-    // TODO: Send email/SMS here using configured provider
-    console.log(`Reset link: https://yourdomain.com/app/auth/reset-password?token=${resetToken}&email=${email}`);
 
     req.flash('success', 'If an account exists, a reset link has been sent.');
     res.redirect('/app/auth/login');
@@ -209,20 +258,20 @@ router.post('/forgot-password', async (req, res) => {
   }
 });
 
-/* Reset Password (SAFE) */
+/* Reset Password */
 router.get('/reset-password', async (req, res) => {
   try {
-    const { token, email } = req.query;
-    if (!token || !email) {
+    const { token, email } = req.query || {};
+
+    if (!token || !email || typeof token !== 'string' || typeof email !== 'string') {
       req.flash('error', 'Invalid reset link.');
       return res.redirect('/app/auth/login');
     }
 
-    const { Op } = require('sequelize');
     const user = await models.User.findOne({
       where: {
-        email,
-        passwordResetToken: token,
+        email: email.trim(),
+        passwordResetToken: token.trim(),
         passwordResetExpires: { [Op.gt]: new Date() },
       },
     });
@@ -236,8 +285,8 @@ router.get('/reset-password', async (req, res) => {
       title: 'FoodPrint - Reset Password',
       user: req.user,
       page_name: 'reset-password',
-      token,
-      email,
+      token: token.trim(),
+      email: email.trim(),
     });
   } catch (err) {
     console.error('Reset password error:', err);
@@ -248,33 +297,35 @@ router.get('/reset-password', async (req, res) => {
 
 router.post('/reset-password', async (req, res) => {
   try {
-    const { token, email, password, confirmPassword } = req.body;
+    const { token, email, password, confirmPassword } = req.body || {};
 
-    // Guards for required fields
-    if (!token || !email) {
+    // Validate input
+    if (!token || !email || typeof token !== 'string' || typeof email !== 'string') {
       req.flash('error', 'Invalid reset request.');
       return res.redirect('/app/auth/login');
     }
+
     if (!password || !confirmPassword) {
       req.flash('error', 'Password and confirmation are required.');
-      return res.redirect(`/app/auth/reset-password?token=${token}&email=${email}`);
+      return res.redirect(`/app/auth/reset-password?token=${encodeURIComponent(token)}&email=${encodeURIComponent(email)}`);
     }
 
     // Validate password
-    if (password !== confirmPassword) {
-      req.flash('error', 'Passwords do not match.');
-      return res.redirect(`/app/auth/reset-password?token=${token}&email=${email}`);
-    }
-    if (password.length < 6) {
+    if (typeof password !== 'string' || password.length < 6) {
       req.flash('error', 'Password must be at least 6 characters long.');
-      return res.redirect(`/app/auth/reset-password?token=${token}&email=${email}`);
+      return res.redirect(`/app/auth/reset-password?token=${encodeURIComponent(token)}&email=${encodeURIComponent(email)}`);
     }
 
-    const { Op } = require('sequelize');
+    if (password !== confirmPassword) {
+      req.flash('error', 'Passwords do not match.');
+      return res.redirect(`/app/auth/reset-password?token=${encodeURIComponent(token)}&email=${encodeURIComponent(email)}`);
+    }
+
+    // Find user with valid token
     const user = await models.User.findOne({
       where: {
-        email,
-        passwordResetToken: token,
+        email: email.trim(),
+        passwordResetToken: token.trim(),
         passwordResetExpires: { [Op.gt]: new Date() },
       },
     });
@@ -284,12 +335,19 @@ router.post('/reset-password', async (req, res) => {
       return res.redirect('/app/auth/login');
     }
 
+    // Hash new password
     const salt = await bcrypt.genSalt(10);
     const hash = await bcrypt.hash(password, salt);
 
+    // Update user
     await models.User.update(
-      { passwordHash: hash, passwordResetToken: null, passwordResetExpires: null },
-      { where: { email } }
+      { 
+        passwordHash: hash, 
+        passwordResetToken: null, 
+        passwordResetExpires: null,
+        updatedAt: new Date()
+      },
+      { where: { email: email.trim() } }
     );
 
     req.flash('success', 'Password reset successful! You can now login.');
